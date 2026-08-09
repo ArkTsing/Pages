@@ -1,0 +1,2131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>星瞳 · 孤独症共同注意 AI 筛查平台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{
+  --ink:#123A42;--ink-2:#1F7A8C;--ink-soft:#5B7A82;--accent:#F5A65B;--accent-soft:#FDEBDD;
+  --paper:#F4F7F8;--card:#fff;--line:#E3ECEF;--ok:#2FA88A;--warn:#E2A13D;--danger:#D9685C;
+  --shadow:0 8px 30px rgba(18,58,66,.08);--r:14px;
+  --sidebar-w:264px;--sidebar-w-collapsed:78px;
+  --font:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  --font-num:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--paper);color:var(--ink);line-height:1.6;overflow-x:hidden}
+a{color:inherit;text-decoration:none}button{font-family:inherit;cursor:pointer;border:none;background:none}
+::selection{background:var(--accent-soft);color:var(--ink)}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#C9D9DD;border-radius:9px}::-webkit-scrollbar-track{background:transparent}
+
+.app{display:flex;min-height:100vh}
+
+/* ===== SIDEBAR ===== */
+.sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--ink);color:#EAF3F5;display:flex;flex-direction:column;transition:width .45s cubic-bezier(.4,0,.2,1);position:sticky;top:0;height:100vh;overflow:hidden;z-index:60}
+.app.collapsed .sidebar{width:var(--sidebar-w-collapsed)}
+.brand{display:flex;align-items:center;gap:12px;padding:22px 20px;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand-logo{width:40px;height:40px;flex-shrink:0;border-radius:12px;background:linear-gradient(135deg,var(--accent),#F5C87B);display:grid;place-items:center;font-weight:800;color:var(--ink);font-size:19px;box-shadow:0 4px 14px rgba(245,166,91,.4)}
+.brand-text{overflow:hidden}
+.brand-name{font-size:17px;font-weight:700;letter-spacing:.5px}
+.brand-sub{font-size:11px;color:#9DB9C0;letter-spacing:2px}
+.nav{flex:1;padding:14px 12px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
+.nav-label{font-size:10.5px;letter-spacing:2px;color:#7E9CA4;padding:10px 12px 6px;white-space:nowrap;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:14px;padding:11px 12px;border-radius:11px;color:#C4D9DE;transition:all .22s;position:relative;white-space:nowrap;font-size:14px}
+.nav-item svg{width:20px;height:20px;flex-shrink:0}
+.nav-item .nav-txt{overflow:hidden}
+.nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav-item.active{background:linear-gradient(90deg,rgba(31,122,140,.45),rgba(31,122,140,.12));color:#fff;font-weight:600}
+.nav-item.active::before{content:"";position:absolute;left:0;top:20%;height:60%;width:3px;border-radius:3px;background:var(--accent)}
+.nav-item .badge{margin-left:auto;font-size:10.5px;background:var(--accent);color:var(--ink);border-radius:20px;padding:1px 7px;font-weight:700}
+.app.collapsed .nav-item{justify-content:center;padding:12px 0}
+.app.collapsed .nav-item .nav-txt,.app.collapsed .nav-label,.app.collapsed .brand-text{display:none}
+.sidebar-foot{padding:14px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px;white-space:nowrap}
+.avatar{width:34px;height:34px;border-radius:50%;background:#2E7D8C;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0}
+.foot-info{overflow:hidden;font-size:12px}
+.foot-info .role{color:#9DB9C0;font-size:10.5px}
+.app.collapsed .foot-info{display:none}
+.collapse-btn{position:fixed;left:calc(var(--sidebar-w) - 14px);top:80px;width:28px;height:28px;border-radius:50%;background:#fff;color:var(--ink);display:grid;place-items:center;box-shadow:0 2px 10px rgba(18,58,66,.18);transition:left .45s cubic-bezier(.4,0,.2,1);z-index:70;font-size:15px}
+.app.collapsed .collapse-btn{left:calc(var(--sidebar-w-collapsed) - 14px);transform:rotate(180deg)}
+
+/* mobile hamburger + overlay */
+.menu-btn{display:none;width:38px;height:38px;border-radius:11px;background:#fff;border:1px solid var(--line);place-items:center;color:var(--ink);flex-shrink:0}
+.overlay{display:none;position:fixed;inset:0;background:rgba(10,25,30,.45);backdrop-filter:blur(2px);z-index:55;opacity:0;transition:opacity .3s}
+
+/* ===== MAIN ===== */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:40;background:rgba(244,247,248,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:12px 22px;flex-wrap:wrap}
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.back-btn{display:none;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--ink);transition:all .2s}
+.back-btn:hover{border-color:var(--ink-2);color:var(--ink-2)}
+.back-btn.show{display:inline-flex}
+.crumb-line{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-soft);flex-wrap:wrap;min-width:0}
+.crumb-line .sep{color:#B7CBD1}
+.crumb-line .here{color:var(--ink);font-weight:700}
+.crumb-line .cbtn{color:var(--ink-2);font-weight:600}
+.crumb-line .cbtn:hover{text-decoration:underline}
+.page-title{font-size:18px;font-weight:800;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.search-box{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:8px 14px;width:230px;transition:all .25s}
+.search-box:focus-within{border-color:var(--ink-2);box-shadow:0 0 0 3px rgba(31,122,140,.12)}
+.search-box input{border:none;outline:none;font-size:13px;background:none;width:100%;color:var(--ink)}
+.icon-btn{width:38px;height:38px;border-radius:11px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;color:var(--ink);transition:all .2s;position:relative}
+.icon-btn:hover{border-color:var(--ink-2);color:var(--ink-2);transform:translateY(-1px)}
+.icon-btn .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--danger)}
+
+.content{padding:24px;display:flex;flex-direction:column;gap:20px}
+.page{display:none}
+.page.active{display:block;animation:pageIn .4s cubic-bezier(.4,0,.2,1)}
+@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ===== CARDS ===== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:22px;transition:transform .3s,box-shadow .3s}
+.card:hover{transform:translateY(-2px);box-shadow:0 14px 38px rgba(18,58,66,.12)}
+.section-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.section-head h2{font-size:16px;font-weight:700}
+.section-head .sub{font-size:12.5px;color:var(--ink-soft)}
+.section-head .spacer{flex:1}
+.chip{font-size:11.5px;padding:4px 10px;border-radius:20px;background:var(--paper);border:1px solid var(--line);color:var(--ink-soft);white-space:nowrap}
+
+/* ===== HERO ===== */
+.hero{position:relative;overflow:hidden;border-radius:var(--r);background:linear-gradient(120deg,#0F3038 0%,#1F5A66 55%,#2E7D8C 100%);color:#fff;padding:32px 32px 26px;box-shadow:var(--shadow)}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(245,166,91,.28),transparent 65%)}
+.hero h1{font-size:25px;font-weight:800;letter-spacing:.5px;margin-bottom:6px}
+.hero p{font-size:13.5px;color:#CBE3E8;max-width:520px}
+.hero-stats{display:flex;gap:34px;margin-top:20px;flex-wrap:wrap}
+.hero-stat .num{font-size:28px;font-weight:800;font-family:var(--font-num);color:#FFD9AE}
+.hero-stat .lbl{font-size:11.5px;color:#A9CBD3;letter-spacing:.5px}
+.scan-stage{position:absolute;inset:0;pointer-events:none;opacity:.85}
+
+/* ===== GRIDS ===== */
+.grid{display:grid;gap:18px}
+.grid-2{grid-template-columns:repeat(2,1fr)}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+.span-2{grid-column:span 2}
+.span-3{grid-column:span 3}
+
+/* ===== EYE STAGE ===== */
+.eye-stage{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#0A232A,#17454F);border-radius:12px;overflow:hidden;display:grid;place-items:center;color:#9DC4CC}
+.eye-stage .focus{position:absolute;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle,var(--accent),rgba(245,166,91,0));transform:translate(-50%,-50%);box-shadow:0 0 18px rgba(245,166,91,.9);transition:all .18s linear;pointer-events:none;z-index:5}
+.eye-stage .center-hint{font-size:13px;letter-spacing:3px;color:#7FAAB5}
+.eye-stage .tobii-tag{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.3);padding:5px 10px;border-radius:8px;font-size:11px;color:#BFE0E6;letter-spacing:1px}
+.eye-stage .rec{position:absolute;top:12px;right:12px;display:flex;align-items:center;gap:6px;background:rgba(217,104,92,.18);border:1px solid rgba(217,104,92,.5);padding:5px 10px;border-radius:8px;font-size:11px;color:#F3B3AC}
+.eye-stage .rec .rec-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.5}}
+.eye-stage .progress-ring{position:absolute;bottom:14px;right:14px;width:56px;height:56px}
+.eye-stage .progress-ring svg{transform:rotate(-90deg)}
+.eye-stage .progress-ring .txt{position:absolute;inset:0;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;font-family:var(--font-num)}
+/* ===== FREE-VIEW STAGE (split stimulus) ===== */
+.fv-stage{position:relative;aspect-ratio:16/8;background:linear-gradient(135deg,#0A232A,#17454F);border-radius:12px;overflow:hidden;min-height:220px}
+.fv-half{position:absolute;top:0;bottom:0;width:50%;display:grid;place-items:center;color:#fff;overflow:hidden}
+.fv-half.left{left:0;background:linear-gradient(135deg,rgba(245,166,91,.14),rgba(245,166,91,.03));border-right:1px dashed rgba(255,255,255,.25)}
+.fv-half.right{right:0;background:linear-gradient(135deg,rgba(31,122,140,.16),rgba(31,122,140,.03))}
+.fv-half .fv-label{position:absolute;top:10px;left:0;right:0;text-align:center;font-size:11px;letter-spacing:2px;color:#A9CBD3;background:rgba(0,0,0,.28);padding:4px 0}
+.fv-face{position:relative;width:74px;height:74px;border-radius:50%;background:radial-gradient(circle at 50% 32%,#EBC7A0,#D6A678 58%,#B98A5E);box-shadow:0 6px 18px rgba(0,0,0,.3)}
+.fv-face::before{content:"";position:absolute;top:22px;left:16px;width:9px;height:6px;border-radius:50%;background:#123A42;box-shadow:24px 0 0 #123A42}
+.fv-face::after{content:"";position:absolute;top:46px;left:50%;width:14px;height:7px;border-radius:0 0 12px 12px;border:2px solid #C4763E;border-top:none;transform:translateX(-50%)}
+.fv-geo{display:flex;gap:10px;align-items:center}
+.fv-geo .g1{width:34px;height:34px;border-radius:6px;background:var(--accent);opacity:.92;animation:gFloat 3.4s ease-in-out infinite}
+.fv-geo .g2{width:30px;height:30px;border-radius:50%;background:#2FA88A;opacity:.9;animation:gFloat 3.4s ease-in-out .6s infinite}
+.fv-geo .g3{width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;border-bottom:30px solid #D9685C;opacity:.9;animation:gFloat 3.4s ease-in-out 1.2s infinite}
+@keyframes gFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.fv-heat{position:absolute;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle,var(--accent),rgba(245,166,91,0) 70%);transform:translate(-50%,-50%);box-shadow:0 0 12px rgba(245,166,91,.8);pointer-events:none}
+.fv-heat.cool{background:radial-gradient(circle,#6BB5C4,rgba(47,168,138,0) 70%);box-shadow:0 0 10px rgba(47,168,138,.7)}
+.fv-aoi-tag{position:absolute;top:34px;right:10px;font-size:10px;color:#8FB6BF;letter-spacing:.5px;background:rgba(0,0,0,.3);padding:3px 8px;border-radius:7px}
+/* dwell region bars */
+.region-bar{height:10px;border-radius:10px;overflow:hidden;display:flex;background:#E7EFF1}
+.region-bar i{display:block;height:100%;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.region-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11.5px;color:var(--ink-soft)}
+.region-legend .rg{display:inline-flex;align-items:center;gap:6px}
+.region-legend .sw{width:11px;height:11px;border-radius:3px}
+.fv-split-card{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:768px){.fv-split-card{grid-template-columns:1fr}}
+.cue-row{display:flex;gap:10px;flex-wrap:wrap}
+.cue-pill{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:9px 14px;font-size:12.5px;cursor:pointer;transition:all .2s;color:var(--ink-soft)}
+.cue-pill:hover{border-color:var(--ink-2)}
+.cue-pill.active{background:var(--ink-2);color:#fff;border-color:var(--ink-2);box-shadow:0 4px 12px rgba(31,122,140,.3)}
+.param-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.param{background:var(--paper);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+.param .k{font-size:11px;color:var(--ink-soft);letter-spacing:.5px}
+.param .v{font-size:18px;font-weight:800;font-family:var(--font-num);margin-top:2px}
+.param .v small{font-size:11px;font-weight:400;color:var(--ink-soft)}
+.param .v.up{color:var(--ok)}.param .v.warn{color:var(--warn)}
+.param .bar{height:4px;border-radius:4px;background:#E0EBEE;margin-top:8px;overflow:hidden}
+.param .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ink-2),var(--accent));border-radius:4px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+
+/* ===== BTN / TABLE ===== */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:11px;font-size:13px;font-weight:600;transition:all .22s}
+.btn-primary{background:var(--ink-2);color:#fff;box-shadow:0 4px 14px rgba(31,122,140,.3)}
+.btn-primary:hover{background:#186A79;transform:translateY(-1px)}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--ink-2);color:var(--ink-2)}
+.btn-accent{background:var(--accent);color:var(--ink)}
+.btn-accent:hover{background:#F09946;transform:translateY(-1px)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;min-width:660px;font-size:13px}
+thead th{background:var(--paper);color:var(--ink-soft);font-size:11.5px;letter-spacing:.5px;text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:600}
+tbody td{padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr{transition:background .18s}
+tbody tr:hover{background:#F7FBFC}
+tbody tr:last-child td{border-bottom:none}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover{background:#EFF8FA}
+.patient{display:flex;align-items:center;gap:10px}
+.patient .p-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.patient .p-name{font-weight:600}
+.patient .p-meta{font-size:11px;color:var(--ink-soft)}
+.status-tag{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600}
+.status-risk{background:#FDEBEC;color:var(--danger)}
+.status-watch{background:#FFF4E3;color:var(--warn)}
+.status-low{background:#E7F6F0;color:var(--ok)}
+.status-active{background:#E8F4FA;color:var(--ink-2)}
+.score-cell{font-family:var(--font-num);font-weight:700}
+.score-cell .mini{font-size:10px;color:var(--ink-soft);font-weight:400;display:block}
+.filter-pills{display:flex;gap:8px;flex-wrap:wrap}
+.fp{padding:7px 14px;border-radius:20px;font-size:12px;background:#fff;border:1px solid var(--line);cursor:pointer;transition:all .2s;color:var(--ink-soft)}
+.fp:hover{border-color:var(--ink-2)}
+.fp.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.count-note{font-size:12px;color:var(--ink-soft)}
+
+/* ===== REPORT ===== */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.gauge{position:relative;width:190px;height:190px}
+.gauge svg{transform:rotate(-90deg)}
+.gauge .g-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge .g-score{font-size:42px;font-weight:800;font-family:var(--font-num);color:var(--ink)}
+.gauge .g-lbl{font-size:12px;color:var(--ink-soft)}
+.verdict{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:30px;font-weight:700;font-size:14px}
+.verdict.high{background:#FDEBEC;color:var(--danger)}
+.verdict.mid{background:#FFF4E3;color:var(--warn)}
+.verdict.low{background:#E7F6F0;color:var(--ok)}
+.metric-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.metric-box{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.metric-box .v{font-size:22px;font-weight:800;font-family:var(--font-num)}
+.metric-box .k{font-size:11px;color:var(--ink-soft);margin-top:2px}
+.chart-box{height:240px;position:relative}
+.chart-box.tall{height:250px}
+.chart-box.sm{height:170px}
+
+/* ===== INTERVENTION ===== */
+.intro-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.plan-card{border-left:4px solid var(--ink-2);transition:all .25s;display:flex;flex-direction:column;gap:10px}
+.plan-card:hover{border-left-color:var(--accent);transform:translateY(-3px);box-shadow:0 16px 40px rgba(18,58,66,.13)}
+.plan-card .pc-head{display:flex;align-items:center;gap:12px}
+.plan-card .pc-icon{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;font-size:21px;flex-shrink:0}
+.plan-card h3{font-size:14.5px;font-weight:700}
+.plan-card .pc-tag{font-size:10.5px;color:var(--ink-soft)}
+.plan-card .pc-desc{font-size:12.5px;color:var(--ink-soft);flex:1}
+.plan-card .pc-footer{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--ink-soft)}
+.plan-card .pc-footer b{color:var(--ink);font-size:14px;font-family:var(--font-num)}
+.progress-track{height:7px;background:#E7EFF1;border-radius:7px;overflow:hidden}
+.progress-track i{display:block;height:100%;border-radius:7px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+.week-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.day{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 6px;text-align:center;transition:all .2s}
+.day .d{font-size:11px;color:var(--ink-soft)}
+.day .n{font-size:18px;font-weight:800;font-family:var(--font-num);margin:2px 0}
+.day .t{font-size:10px;color:var(--ink-soft);min-height:24px}
+.day.done{border-color:var(--ok);background:#F0FAF6}
+.day.done .n{color:var(--ok)}
+.day.today{border-color:var(--accent);background:var(--accent-soft)}
+.day.today .n{color:var(--ink)}
+.timeline{position:relative;padding-left:26px;margin-top:8px}
+.timeline::before{content:"";position:absolute;left:8px;top:4px;bottom:4px;width:2px;background:var(--line)}
+.tl-item{position:relative;padding-bottom:16px}
+.tl-item:last-child{padding-bottom:0}
+.tl-item::before{content:"";position:absolute;left:-23px;top:5px;width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid var(--ink-2)}
+.tl-item.done::before{background:var(--ok);border-color:var(--ok)}
+.tl-item .tl-date{font-size:11px;color:var(--ink-soft);font-family:var(--font-num)}
+.tl-item .tl-title{font-size:13px;font-weight:600}
+.task-check{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.task-check:last-child{border:none}
+.task-check .cb{width:20px;height:20px;border-radius:6px;border:2px solid #C4D8DD;display:grid;place-items:center;transition:all .2s;color:#fff;font-size:12px;flex-shrink:0;cursor:pointer}
+.task-check.done .cb{background:var(--ok);border-color:var(--ok)}
+.task-check .t-info{flex:1}
+.task-check .t-name{font-size:13px;font-weight:600}
+.task-check .t-meta{font-size:11px;color:var(--ink-soft)}
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.team-card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center;transition:all .2s}
+.team-card:hover{border-color:var(--ink-2)}
+.team-card .t-ic{font-size:24px}
+.team-card .t-name{font-size:13.5px;font-weight:700;margin-top:6px}
+.team-card .t-role{font-size:11.5px;color:var(--ink-soft)}
+.team-card .t-act{font-size:11px;color:var(--ink-2);margin-top:6px;display:inline-flex;align-items:center;gap:4px}
+
+/* ===== DETAIL ===== */
+.detail-head{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.detail-avatar{width:60px;height:60px;border-radius:15px;display:grid;place-items:center;font-size:23px;font-weight:800;color:#fff}
+.detail-id{font-size:12px;color:var(--ink-soft);font-family:var(--font-num)}
+.detail-name{font-size:21px;font-weight:800}
+.detail-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+.info-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.info-item{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:11px 14px}
+.info-item .k{font-size:11px;color:var(--ink-soft)}
+.info-item .v{font-size:14px;font-weight:700;margin-top:2px}
+
+/* ===== FORMS ===== */
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;color:var(--ink-soft);font-weight:600}
+.field input,.field select,.field textarea{font-family:var(--font);font-size:13px;padding:10px 13px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);outline:none;transition:all .2s;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--ink-2);box-shadow:0 0 0 3px rgba(31,122,140,.12)}
+.field input[readonly]{background:var(--paper)}
+.field .hint{font-size:11px;color:var(--ink-soft)}
+.field .req{color:var(--danger)}
+/* ===== TABS ===== */
+.tab-row{display:flex;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+.tab{padding:8px 16px;border-radius:9px;font-size:12.5px;color:var(--ink-soft);cursor:pointer;transition:all .2s;font-weight:600}
+.tab:hover{color:var(--ink)}
+.tab.active{background:#fff;color:var(--ink-2);box-shadow:0 2px 8px rgba(18,58,66,.1)}
+/* ===== KPI ROW ===== */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpi .k{font-size:11px;color:var(--ink-soft)}
+.kpi .v{font-size:24px;font-weight:800;font-family:var(--font-num);margin-top:3px}
+.kpi .v.ok{color:var(--ok)}.kpi .v.warn{color:var(--warn)}.kpi .v.bad{color:var(--danger)}.kpi .v.info{color:var(--ink-2)}
+.kpi .s{font-size:10.5px;color:var(--ink-soft);margin-top:2px}
+/* ===== TRIAL LIST ===== */
+.trial-row{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px dashed var(--line)}
+.trial-row:last-child{border:none}
+.trial-idx{width:34px;height:34px;border-radius:9px;background:var(--paper);border:1px solid var(--line);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--ink-soft);flex-shrink:0}
+.trial-idx.hit{background:#E7F6F0;color:var(--ok);border-color:var(--ok)}
+.trial-idx.miss{background:#FDEBEC;color:var(--danger);border-color:var(--danger)}
+.trial-info{flex:1;min-width:0}
+.trial-cue{font-size:12.5px;font-weight:600}
+.trial-meta{font-size:11px;color:var(--ink-soft)}
+.trial-val{font-size:13px;font-weight:700;font-family:var(--font-num)}
+.trial-val.hit{color:var(--ok)}.trial-val.miss{color:var(--danger)}
+/* ===== CONFUSION MATRIX ===== */
+.conf-grid{display:grid;grid-template-columns:1fr;gap:10px;max-width:420px}
+.conf-cell{border-radius:12px;padding:18px;text-align:center}
+.conf-cell .c-num{font-size:30px;font-weight:800;font-family:var(--font-num)}
+.conf-cell .c-lbl{font-size:11.5px;color:inherit;opacity:.8;margin-top:2px}
+/* ===== KINDY CARD ===== */
+.kindy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.kindy-card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;transition:all .2s}
+.kindy-card:hover{border-color:var(--ink-2);transform:translateY(-2px)}
+.kindy-card .kc-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.kindy-card .kc-ic{width:38px;height:38px;border-radius:11px;background:#fff;display:grid;place-items:center;font-size:18px;border:1px solid var(--line)}
+.kindy-card .kc-name{font-size:13.5px;font-weight:700}
+.kindy-card .kc-tag{font-size:10.5px;color:var(--ink-soft)}
+.kindy-card .kc-role{font-size:12px;color:var(--ink-soft);margin-bottom:8px}
+.kindy-card .kc-stat{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-soft);padding-top:8px;border-top:1px solid var(--line)}
+/* ===== PHASE BAR ===== */
+.phase-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.phase{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;position:relative}
+.phase .p-n{font-size:11px;color:var(--ink-soft)}
+.phase .p-t{font-size:12.5px;font-weight:700;margin-top:2px}
+.phase .p-d{font-size:10.5px;color:var(--ink-soft)}
+.phase.done{border-color:var(--ok);background:#F0FAF6}
+.phase.done .p-n{color:var(--ok)}
+.phase.cur{border-color:var(--accent);background:var(--accent-soft)}
+/* ===== SWITCH ===== */
+.switch{position:relative;width:40px;height:22px;border-radius:22px;background:#C9D9DD;transition:all .2s;cursor:pointer;flex-shrink:0}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.switch.on{background:var(--ok)}
+.switch.on::after{left:20px}
+.set-row{display:flex;align-items:center;gap:14px;padding:14px 4px;border-bottom:1px dashed var(--line)}
+.set-row:last-child{border:none}
+.set-row .s-info{flex:1}
+.set-row .s-name{font-size:13.5px;font-weight:600}
+.set-row .s-desc{font-size:11.5px;color:var(--ink-soft)}
+/* ===== CALIB QUALITY ===== */
+.qual-row{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px dashed var(--line)}
+.qual-row:last-child{border:none}
+.qual-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.qual-dot.good{background:var(--ok)}.qual-dot.fair{background:var(--warn)}.qual-dot.poor{background:var(--danger)}
+.qual-info{flex:1;min-width:0}
+.qual-name{font-size:12.5px;font-weight:600}
+.qual-desc{font-size:11px;color:var(--ink-soft)}
+.qual-pct{font-size:13px;font-weight:700;font-family:var(--font-num)}
+/* ===== REVEAL ===== */
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .5s ease,transform .5s cubic-bezier(.4,0,.2,1)}
+.reveal.visible{opacity:1;transform:none}
+.stagger .reveal:nth-child(2){transition-delay:.05s}
+.stagger .reveal:nth-child(3){transition-delay:.1s}
+.stagger .reveal:nth-child(4){transition-delay:.15s}
+.stagger .reveal:nth-child(5){transition-delay:.2s}
+.stagger .reveal:nth-child(6){transition-delay:.25s}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.hero h1{animation:floaty 5s ease-in-out infinite}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width:1200px){
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .metric-strip,.intro-strip{grid-template-columns:repeat(2,1fr)}
+  .span-3{grid-column:span 2}
+}
+@media (max-width:920px){
+  .grid-3,.grid-2{grid-template-columns:1fr}
+  .span-2,.span-3{grid-column:span 1}
+  .param-grid,.info-grid{grid-template-columns:1fr}
+  .content{padding:16px}
+  .search-box{width:150px}
+  .team-grid{grid-template-columns:1fr}
+}
+@media (max-width:768px){
+  .menu-btn{display:grid}
+  .overlay.show{display:block;opacity:1}
+  .sidebar{position:fixed;left:0;top:0;width:var(--sidebar-w);transform:translateX(-100%);transition:transform .35s cubic-bezier(.4,0,.2,1);height:100vh}
+  .app.mobile-open .sidebar{transform:translateX(0)}
+  .collapse-btn{display:none}
+  .topbar{padding:10px 14px}
+  .search-box{display:none}
+  .hero h1{font-size:20px}.hero-stats{gap:18px}
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .metric-strip,.intro-strip{grid-template-columns:1fr}
+  .week-strip{grid-template-columns:repeat(4,1fr)}
+  .back-btn.show{display:inline-flex}
+  .crumb-line .cbtn{display:none}
+}
+
+/* ===== LOGIN OVERLAY ===== */
+.login-overlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:linear-gradient(120deg,#0B252D 0%,#123A42 45%,#1F5A66 100%);overflow:hidden}
+.login-overlay.show{display:flex;animation:loginIn .45s cubic-bezier(.4,0,.2,1)}
+@keyframes loginIn{from{opacity:0}to{opacity:1}}
+.login-overlay::before{content:"";position:absolute;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(245,166,91,.22),transparent 62%);top:-140px;right:-120px}
+.login-overlay::after{content:"";position:absolute;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(31,122,140,.28),transparent 60%);bottom:-160px;left:-120px}
+.login-card{position:relative;z-index:2;width:min(420px,92vw);background:#fff;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.4);padding:40px 38px 34px;animation:cardUp .6s cubic-bezier(.2,.8,.25,1)}
+@keyframes cardUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.login-brand{display:flex;align-items:center;gap:13px;margin-bottom:8px}
+.login-logo{width:52px;height:52px;border-radius:15px;background:linear-gradient(135deg,var(--accent),#F5C87B);display:grid;place-items:center;font-size:24px;font-weight:800;color:var(--ink);box-shadow:0 8px 20px rgba(245,166,91,.45)}
+.login-title{font-size:21px;font-weight:800;letter-spacing:.5px}
+.login-sub{font-size:12px;color:var(--ink-soft);letter-spacing:1.5px;text-transform:uppercase}
+.login-tip{font-size:12.5px;color:var(--ink-soft);margin:18px 0 22px;line-height:1.7}
+.login-tip b{color:var(--ink-2)}
+.login-form{display:flex;flex-direction:column;gap:14px}
+.login-field label{display:block;font-size:12px;color:var(--ink-soft);font-weight:600;margin-bottom:6px}
+.login-field input{width:100%;font-family:var(--font);font-size:13.5px;padding:12px 14px;border:1px solid var(--line);border-radius:11px;outline:none;transition:all .2s;background:var(--paper)}
+.login-field input:focus{border-color:var(--ink-2);box-shadow:0 0 0 3px rgba(31,122,140,.12);background:#fff}
+.login-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-top:2px}
+.login-row .remember{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.login-row .forgot{color:var(--ink-2);cursor:pointer}
+.login-btn{width:100%;margin-top:6px;padding:13px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--ink-2),#2E8FA0);color:#fff;font-size:14.5px;font-weight:700;cursor:pointer;transition:all .22s;box-shadow:0 8px 22px rgba(31,122,140,.35)}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(31,122,140,.45)}
+.login-demo{margin-top:14px;text-align:center;font-size:12px;color:var(--ink-soft)}
+.login-demo button{color:var(--ink-2);font-weight:700;cursor:pointer;background:none;border:none;font-size:12px}
+.login-foot{margin-top:22px;padding-top:16px;border-top:1px dashed var(--line);text-align:center;font-size:11px;color:#A3B6BB}
+
+/* ===== MODAL ===== */
+.modal-mask{position:fixed;inset:0;z-index:180;background:rgba(10,25,30,.5);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center}
+.modal-mask.show{display:flex;animation:fadeIn .25s}
+.modal{width:min(400px,92vw);background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.3);padding:24px;animation:cardUp .3s cubic-bezier(.2,.8,.25,1)}
+.modal h3{font-size:15.5px;font-weight:800;margin-bottom:6px}
+.modal .m-desc{font-size:12px;color:var(--ink-soft);margin-bottom:16px}
+.modal .m-body{margin-bottom:18px}
+.modal .m-body input,.modal .m-body textarea{width:100%;font-family:var(--font);font-size:13.5px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;outline:none;transition:all .2s}
+.modal .m-body input:focus,.modal .m-body textarea:focus{border-color:var(--ink-2);box-shadow:0 0 0 3px rgba(31,122,140,.12)}
+.modal .m-actions{display:flex;gap:10px;justify-content:flex-end}
+.modal .m-confirm{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:10px;border:none;background:var(--ink-2);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
+.modal .m-confirm:hover{background:#186A79}
+.modal .m-cancel{padding:9px 16px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:13px;font-weight:600;cursor:pointer}
+.modal .m-cancel:hover{border-color:var(--ink-2)}
+
+/* ===== TOAST ===== */
+.toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,20px);z-index:220;background:var(--ink);color:#fff;padding:11px 20px;border-radius:12px;font-size:13px;font-weight:600;box-shadow:0 12px 34px rgba(18,58,66,.4);opacity:0;transition:all .35s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;gap:8px;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.ok::before{content:"✓";color:#5BC9AE;font-weight:800}
+
+/* ===== LIBRARY ===== */
+.lib-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.lib-crumbs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:13px;color:var(--ink-soft);margin-bottom:16px}
+.lib-crumb{color:var(--ink-2);font-weight:600;cursor:pointer}
+.lib-crumb:hover{text-decoration:underline}
+.lib-crumb.here{color:var(--ink);font-weight:700;cursor:default}
+.lib-crumb.here:hover{text-decoration:none}
+.lib-sep{color:#B7CBD1}
+.folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.lib-item{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:18px 16px;cursor:pointer;transition:all .22s;position:relative}
+.lib-item:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(18,58,66,.12);border-color:var(--ink-2)}
+.lib-item .li-ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:21px;margin-bottom:10px}
+.lib-item.folder .li-ic{background:#FFF4E3}
+.lib-item.file .li-ic{background:#E8F4FA}
+.lib-item .li-name{font-size:13.5px;font-weight:700;line-height:1.35;display:flex;align-items:center;gap:6px}
+.lib-item .li-meta{font-size:11px;color:var(--ink-soft);margin-top:4px}
+.lib-item .li-del{position:absolute;top:12px;right:12px;width:26px;height:26px;border-radius:8px;border:1px solid var(--line);background:#fff;color:#A3B6BB;display:grid;place-items:center;font-size:14px;cursor:pointer;opacity:0;transition:all .2s}
+.lib-item:hover .li-del{opacity:1}
+.lib-item .li-del:hover{color:var(--danger);border-color:var(--danger)}
+.lib-item .li-count{font-size:10.5px;padding:1px 7px;border-radius:12px;background:var(--paper);color:var(--ink-soft);font-weight:600}
+
+/* ===== PROFILE ===== */
+.profile-hero{background:linear-gradient(120deg,#123A42,#1F5A66 60%,#2E7D8C);border-radius:var(--r);color:#fff;padding:26px 28px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;box-shadow:var(--shadow)}
+.profile-avatar{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,var(--accent),#F5C87B);display:grid;place-items:center;font-size:28px;font-weight:800;color:var(--ink);box-shadow:0 10px 26px rgba(245,166,91,.4)}
+.profile-meta .pm-name{font-size:22px;font-weight:800}
+.profile-meta .pm-role{font-size:12.5px;color:#A9CBD3;margin-top:3px}
+.profile-meta .pm-id{font-size:11.5px;color:#8FB6BF;font-family:var(--font-num);margin-top:2px}
+.profile-stats{display:flex;gap:26px;margin-left:auto;flex-wrap:wrap}
+.profile-stat{text-align:center}
+.profile-stat .n{font-size:24px;font-weight:800;font-family:var(--font-num);color:#FFD9AE}
+.profile-stat .l{font-size:11px;color:#A9CBD3}
+.profile-tabs{display:flex;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:4px;flex-wrap:wrap}
+.profile-tab{padding:8px 16px;border-radius:9px;font-size:12.5px;color:var(--ink-soft);cursor:pointer;transition:all .2s;font-weight:600}
+.profile-tab:hover{color:var(--ink)}
+.profile-tab.active{background:#fff;color:var(--ink-2);box-shadow:0 2px 8px rgba(18,58,66,.1)}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo">星</div>
+      <div class="brand-text"><div class="brand-name">星瞳 AI</div><div class="brand-sub">XINGTONG SCREEN</div></div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-label">Workflow</div>
+      <a class="nav-item active" data-page="collect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg><span class="nav-txt">数据采集</span></a>
+      <a class="nav-item" data-page="cases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/><path d="M4 3h16v2H4z"/></svg><span class="nav-txt">病案管理</span><span class="badge">24</span></a>
+      <a class="nav-item" data-page="report"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg><span class="nav-txt">AI 筛查报告</span></a>
+      <a class="nav-item" data-page="intervention"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-4.6-9.3-9A5.4 5.4 0 0 1 12 6a5.4 5.4 0 0 1 9.3 6C19 16.4 12 21 12 21z"/></svg><span class="nav-txt">医教融合干预</span></a>
+      <div class="nav-label" style="margin-top:10px">System</div>
+      <a class="nav-item" data-page="library"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/></svg><span class="nav-txt">资源库</span></a>
+      <a class="nav-item" data-page="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg><span class="nav-txt">个人中心</span></a>
+      <a class="nav-item" data-page="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="nav-txt">系统设置</span></a>
+    </nav>
+    <div class="sidebar-foot" id="profileFoot" style="cursor:pointer" title="进入个人中心">
+      <div class="avatar">陈</div>
+      <div class="foot-info"><div>陈医生 · 儿康科</div><div class="role">Nanjing · Demo</div></div>
+      <span style="margin-left:auto;color:#7E9CA4;font-size:14px">›</span>
+    </div>
+  </aside>
+
+  <div class="overlay" id="overlay"></div>
+  <button class="collapse-btn" id="collapseBtn" aria-label="collapse sidebar">◀</button>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+      <button class="back-btn" id="backBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M15 18l-6-6 6-6"/></svg> 返回</button>
+      <div class="topbar-left">
+        <div>
+          <div class="crumb-line" id="crumbLine"><span class="here">数据采集</span></div>
+          <div class="page-title" id="pageTitle">共同注意 · 眼动筛查</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="search-box"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5B7A82" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="搜索患儿 / 报告…" id="globalSearch" /></div>
+        <button class="icon-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="dot"></span></button>
+        <button class="icon-btn"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z"/></svg></button>
+      </div>
+    </header>
+
+    <main class="content" id="content">
+
+      <!-- ===== COLLECT ===== -->
+      <section class="page active" id="page-collect">
+        <div class="hero">
+          <canvas class="scan-stage" id="heroScan"></canvas>
+          <h1>共同注意 · 眼动筛查</h1>
+          <p>RJA 三线索任务 + 自由观看偏好任务，自动追踪注视轨迹，实时评估共同注意能力。Demo 界面 · 数据为示意。</p>
+          <div class="hero-stats">
+            <div class="hero-stat"><div class="num" data-count="24">0</div><div class="lbl">本周采集例数</div></div>
+            <div class="hero-stat"><div class="num" data-count="92.4">0</div><div class="lbl">采样率 · %</div></div>
+            <div class="hero-stat"><div class="num" data-count="4.8">0</div><div class="lbl">平均任务时长 · min</div></div>
+          </div>
+        </div>
+        <div class="grid grid-2 stagger">
+          <div class="card reveal">
+            <div class="section-head"><h2>眼动采集任务</h2><div class="chip">RJA · 三线索</div><div class="spacer"></div><button class="btn btn-ghost btn-sm">Fullscreen</button></div>
+            <div class="eye-stage" id="eyeStage">
+              <div class="tobii-tag">TOBII PRO · 60Hz</div>
+              <div class="rec"><span class="rec-dot"></span>REC · 00:42</div>
+              <div class="center-hint" id="eyeHint">▶ 校准完成 · 试次 6 / 12</div>
+              <div class="focus" id="focusDot"></div>
+              <div class="progress-ring"><svg width="56" height="56"><circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="5"/><circle cx="28" cy="28" r="24" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="151" stroke-dashoffset="0" id="ringArc"/></svg><div class="txt" id="ringTxt">50%</div></div>
+            </div>
+            <div class="cue-row" style="margin-top:14px">
+              <div class="cue-pill active" data-cue="eyes"><span class="cue-icon">👁</span> 仅眼睛</div>
+              <div class="cue-pill" data-cue="head"><span class="cue-icon">🙂</span> 眼睛 + 头部</div>
+              <div class="cue-pill" data-cue="gesture"><span class="cue-icon">☝️</span> 眼睛 + 头 + 手势</div>
+            </div>
+          </div>
+          <div class="card reveal">
+            <div class="section-head"><h2>实时眼动指标</h2><div class="chip">Auto · 60Hz</div></div>
+            <div class="param-grid">
+              <div class="param"><div class="k">首次注视目标时间 · TFF</div><div class="v"><span id="p1">312</span><small> ms</small></div><div class="bar"><i style="width:62%"></i></div></div>
+              <div class="param"><div class="k">RJA 正确率</div><div class="v up"><span id="p2">41.7</span><small> %</small></div><div class="bar"><i style="width:42%"></i></div></div>
+              <div class="param"><div class="k">目标区注视时长占比</div><div class="v warn"><span id="p3">18.3</span><small> %</small></div><div class="bar"><i style="width:18%"></i></div></div>
+              <div class="param"><div class="k">眼睛区域注视占比</div><div class="v"><span id="p4">22.1</span><small> %</small></div><div class="bar"><i style="width:22%"></i></div></div>
+            </div>
+            <div style="margin-top:14px" class="section-head"><h2 style="font-size:14px">任务控制</h2></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg> 五点校准</button>
+              <button class="btn btn-accent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5v14l11-7z"/></svg> 开始任务</button>
+              <button class="btn btn-ghost"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg> 导出原始数据</button>
+            </div>
+          </div>
+        </div>
+        <div class="card reveal" style="border-left:4px solid #7B6B9C">
+          <div class="section-head"><h2>自由观看偏好任务</h2><div class="chip">人脸 vs 几何图形</div><div class="spacer"></div><button class="btn btn-primary btn-sm" onclick="showFreeview('P-0024')">开始采集 ›</button></div>
+          <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px">分屏刺激下自由观看，评估社会性注意偏好（EYE-PDT）与非社会性刺激偏好（GPI），与 RJA 应答式共同注意任务互为补充。</p>
+          <div class="fv-split-card">
+            <div class="info-item"><div class="k">眼睛区域注视占比 EYE-PDT</div><div class="v" style="font-size:20px">26.9 <small style="font-size:11px">% · 参考 55–75%</small></div></div>
+            <div class="info-item"><div class="k">几何图形偏好指数 GPI</div><div class="v" style="font-size:20px">52.0 <small style="font-size:11px">% · 参考 15–30%</small></div></div>
+          </div>
+        </div>
+        <div class="card reveal">
+          <div class="section-head"><h2>最近采集记录</h2><div class="sub">Synced from Tobii Pro Lab</div><div class="spacer"></div><button class="btn btn-ghost btn-sm" onclick="showQuality()">数据质量</button><button class="btn btn-ghost btn-sm" onclick="showSession('P-0024','RJA · 三线索')">查看全部</button></div>
+          <div class="table-wrap">
+            <table><thead><tr><th>患儿</th><th>任务</th><th>TFF (ms)</th><th>RJA正确率</th><th>采样率</th><th>状态</th><th>时间</th></tr></thead><tbody id="collectTable"></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== CASES ===== -->
+      <section class="page" id="page-cases">
+        <div class="toolbar">
+          <button class="btn btn-primary" id="btnNewCase"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> 新建病案</button>
+          <button class="btn btn-ghost"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v6h6M20 20v-6h-6M4 16l4-4M20 8l-4 4"/></svg> 导出</button>
+          <div class="spacer" style="flex:1"></div>
+          <div class="filter-pills" id="filterPills">
+            <div class="fp active" data-filter="all">全部 <span class="count-note">24</span></div>
+            <div class="fp" data-filter="risk">高风险 <span class="count-note">6</span></div>
+            <div class="fp" data-filter="watch">观察中 <span class="count-note">9</span></div>
+            <div class="fp" data-filter="low">低风险 <span class="count-note">9</span></div>
+          </div>
+        </div>
+        <div class="card reveal">
+          <div class="table-wrap">
+            <table><thead><tr><th>患儿</th><th>性别 / 年龄</th><th>AI 风险评分</th><th>风险等级</th><th>RJA 正确率</th><th>最近筛查</th><th>操作</th></tr></thead><tbody id="caseTable"></tbody></table>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap;gap:10px">
+            <div class="count-note">Showing 1–8 of 24 cases</div>
+            <div style="display:flex;gap:6px"><button class="fp">‹</button><button class="fp active">1</button><button class="fp">2</button><button class="fp">3</button><button class="fp">›</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== CASE DETAIL ===== -->
+      <section class="page" id="page-casedetail"><div id="caseDetailBody"></div></section>
+
+      <!-- ===== REPORT OVERVIEW ===== -->
+      <section class="page" id="page-report">
+        <div class="toolbar">
+          <div class="chip">近 30 天报告</div><div class="chip">更新于 07-28</div>
+          <div class="spacer" style="flex:1"></div>
+          <button class="btn btn-ghost btn-sm" onclick="showModel()">模型性能</button>
+          <button class="btn btn-ghost"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v6h6M20 20v-6h-6M4 16l4-4M20 8l-4 4"/></svg> 导出总览</button>
+        </div>
+        <div class="grid grid-4 stagger">
+          <div class="card reveal"><div class="metric-box" style="background:none;border:none;padding:0"><div class="v" style="font-size:30px" data-count="24">0</div><div class="k">已筛查患儿</div></div></div>
+          <div class="card reveal"><div class="metric-box" style="background:none;border:none;padding:0"><div class="v" style="font-size:30px;color:var(--danger)" data-count="6">0</div><div class="k">高风险</div></div></div>
+          <div class="card reveal"><div class="metric-box" style="background:none;border:none;padding:0"><div class="v" style="font-size:30px;color:var(--ink-2)" data-count="0.87">0</div><div class="k">模型 AUC</div></div></div>
+          <div class="card reveal"><div class="metric-box" style="background:none;border:none;padding:0"><div class="v" style="font-size:30px;color:var(--ok)" data-count="84.2">0</div><div class="k">灵敏度 %</div></div></div>
+        </div>
+        <div class="grid grid-2 stagger">
+          <div class="card reveal">
+            <div class="section-head"><h2>风险分布</h2><div class="chip">全部病例</div></div>
+            <div class="chart-box sm"><canvas id="ovDonut"></canvas></div>
+          </div>
+          <div class="card reveal">
+            <div class="section-head"><h2>近 6 月筛查趋势</h2><div class="chip">例数 / 月</div></div>
+            <div class="chart-box sm"><canvas id="ovTrend"></canvas></div>
+          </div>
+        </div>
+        <div class="card reveal">
+          <div class="section-head"><h2>全部筛查报告</h2><div class="sub">点击行查看个人报告</div><div class="spacer"></div>
+            <div class="filter-pills" id="reportFilter">
+              <div class="fp active" data-rf="all">全部</div>
+              <div class="fp" data-rf="risk">高风险</div>
+              <div class="fp" data-rf="watch">观察中</div>
+              <div class="fp" data-rf="low">低风险</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table><thead><tr><th>患儿</th><th>风险评分</th><th>风险等级</th><th>TFF (ms)</th><th>RJA 正确率</th><th>筛查日期</th><th>操作</th></tr></thead><tbody id="reportTable"></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== REPORT DETAIL ===== -->
+      <section class="page" id="page-reportdetail"><div id="reportDetailBody"></div></section>
+
+      <!-- ===== INTERVENTION ===== -->
+      <section class="page" id="page-intervention">
+        <div class="hero" style="background:linear-gradient(120deg,#1F4A54 0%,#2E7D8C 55%,#3A9A8F 100%)">
+          <canvas class="scan-stage" id="heroScan2"></canvas>
+          <h1>医教融合 · 家庭干预</h1>
+          <p>以共同注意核心缺陷为中心，构建"医院诊断 — 家庭训练 — 幼儿园融合"三方联动的闭环干预体系，眼动指标全程追踪改善。</p>
+          <div class="hero-stats">
+            <div class="hero-stat"><div class="num" data-count="15">0</div><div class="lbl">在案干预患儿</div></div>
+            <div class="hero-stat"><div class="num" data-count="12">0</div><div class="lbl">家庭训练周次</div></div>
+            <div class="hero-stat"><div class="num" data-count="+38">0</div><div class="lbl">TFF 平均改善</div></div>
+          </div>
+        </div>
+
+        <div class="intro-strip stagger">
+          <div class="card reveal"><div class="metric-box" style="background:none;border:none;padding:0"><div class="v" style="font-size:24px;color:var(--ink-2)" data-count="3">0</div><div class="k">训练板块</div></div></div>
+          <div class="card reveal"><div class="metric-box" style="background:none;border:none;padding:0"><div class="v" style="font-size:24px;color:var(--ok)" data-count="14">0</div><div class="k">本周任务完成</div></div></div>
+          <div class="card reveal"><div class="metric-box" style="background:none;border:none;padding:0"><div class="v" style="font-size:24px;color:var(--accent)" data-count="8">0</div><div class="k">对接幼儿园</div></div></div>
+          <div class="card reveal"><div class="metric-box" style="background:none;border:none;padding:0"><div class="v" style="font-size:24px;color:var(--danger)" data-count="2">0</div><div class="k">本周待跟进</div></div></div>
+        </div>
+
+        <div class="grid grid-3 stagger">
+          <div class="card plan-card reveal">
+            <div class="pc-head"><div class="pc-icon" style="background:#E8F4FA">👀</div><div><h3>眼神跟随训练</h3><div class="pc-tag">RJA · 核心目标</div></div></div>
+            <p class="pc-desc">渐进式线索（眼睛 → 头部 → 手势）引导儿童注视目标物，重建"看-看-看"共同注意链条。</p>
+            <div class="progress-track"><i style="width:72%;background:linear-gradient(90deg,var(--ink-2),var(--accent))"></i></div>
+            <div class="pc-footer"><span>12 个患儿启用</span><b>72%</b></div>
+            <button class="btn btn-ghost btn-sm" onclick="showIntervPlan()" style="align-self:flex-start">查看完整方案 ›</button>
+          </div>
+          <div class="card plan-card reveal">
+            <div class="pc-head"><div class="pc-icon" style="background:#FFF4E3">🧩</div><div><h3>社会性偏好激活</h3><div class="pc-tag">自由观看 · 偏好重塑</div></div></div>
+            <p class="pc-desc">人脸 + 几何图形分屏刺激，逐步增加社交刺激吸引力，提升眼睛区域注视偏好比例。</p>
+            <div class="progress-track"><i style="width:48%;background:linear-gradient(90deg,var(--warn),var(--accent))"></i></div>
+            <div class="pc-footer"><span>9 个患儿启用</span><b>48%</b></div>
+          </div>
+          <div class="card plan-card reveal">
+            <div class="pc-head"><div class="pc-icon" style="background:#E7F6F0">🏫</div><div><h3>幼儿园融合课</h3><div class="pc-tag">医教联动 · 每周2次</div></div></div>
+            <p class="pc-desc">联合幼儿园教师实施共同注意游戏，医院出具方案，园方执行并记录课堂反馈。</p>
+            <div class="progress-track"><i style="width:35%;background:linear-gradient(90deg,var(--ok),#5BC9AE)"></i></div>
+            <div class="pc-footer"><span>8 家幼儿园合作</span><b>35%</b></div>
+            <button class="btn btn-ghost btn-sm" onclick="showKindy()" style="align-self:flex-start">对接管理 ›</button>
+          </div>
+        </div>
+
+        <div class="grid grid-2 stagger">
+          <div class="card reveal">
+            <div class="section-head"><h2>本周训练安排</h2><div class="chip">家庭端同步</div></div>
+            <div class="week-strip" id="weekStrip"></div>
+            <div class="section-head" style="margin-top:20px"><h2 style="font-size:14px">家庭任务清单</h2></div>
+            <div id="taskList"></div>
+          </div>
+          <div class="card reveal">
+            <div class="section-head"><h2>干预里程碑</h2><div class="chip">P-0024 · 12周计划</div></div>
+            <div class="timeline">
+              <div class="tl-item done"><div class="tl-date">W1 · 07/15</div><div class="tl-title">基线眼动评估 · TFF 438ms</div></div>
+              <div class="tl-item done"><div class="tl-date">W4 · 08/05</div><div class="tl-title">眼神跟随训练启动 · 正确率 35%</div></div>
+              <div class="tl-item"><div class="tl-date">W8 · 09/02</div><div class="tl-title">中期复测 · 评估改善</div></div>
+              <div class="tl-item"><div class="tl-date">W12 · 09/30</div><div class="tl-title">终期复测 · 生成报告</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card reveal">
+          <div class="section-head"><h2>三方协同团队</h2><div class="sub">医院 · 家庭 · 幼儿园</div></div>
+          <div class="team-grid">
+            <div class="team-card"><div class="t-ic">🏥</div><div class="t-name">儿康科医师</div><div class="t-role">方案制定 · 眼动评估</div><div class="t-act">› 3 位在岗</div></div>
+            <div class="team-card"><div class="t-ic">👩‍⚕️</div><div class="t-name">康复治疗师</div><div class="t-role">训练执行 · 进度记录</div><div class="t-act">› 5 位在岗</div></div>
+            <div class="team-card"><div class="t-ic">🏠</div><div class="t-name">家庭照护者</div><div class="t-role">每日家庭训练 · 打卡</div><div class="t-act">› 15 个家庭</div></div>
+            <div class="team-card"><div class="t-ic">🏫</div><div class="t-name">幼儿园教师</div><div class="t-role">融合课堂执行 · 反馈</div><div class="t-act">› 8 家合作园</div></div>
+            <div class="team-card"><div class="t-ic">📊</div><div class="t-name">数据协调员</div><div class="t-role">数据汇总 · 周报</div><div class="t-act">› 2 位在岗</div></div>
+            <div class="team-card"><div class="t-ic">🔬</div><div class="t-name">科研团队</div><div class="t-role">效果分析 · 论文产出</div><div class="t-act">› 课题组</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SETTINGS ===== -->
+      <section class="page" id="page-settings">
+        <div class="card reveal">
+          <div class="section-head"><h2>系统设置</h2><div class="chip">Demo 占位</div></div>
+          <div class="info-grid">
+            <div class="info-item"><div class="k">设备型号</div><div class="v">Tobii Pro Fusion</div></div>
+            <div class="info-item"><div class="k">采样率</div><div class="v">60 Hz</div></div>
+            <div class="info-item"><div class="k">AI 模型版本</div><div class="v">v2.1 · LASSO+RF</div></div>
+            <div class="info-item"><div class="k">数据存储</div><div class="v">本地脱敏 · 加密</div></div>
+          </div>
+        </div>
+        <div class="card reveal">
+          <div class="section-head"><h2>快速入口</h2><div class="sub">二级管理页面</div></div>
+          <div class="team-grid">
+            <div class="team-card" onclick="showDeviceMgr()" style="cursor:pointer"><div class="t-ic">🖥️</div><div class="t-name">设备管理</div><div class="t-role">眼动仪连接 / 状态</div><div class="t-act">› 进入</div></div>
+            <div class="team-card" onclick="showDataMgr()" style="cursor:pointer"><div class="t-ic">🗄️</div><div class="t-name">数据与权限</div><div class="t-role">存储 / 脱敏 / 审计</div><div class="t-act">› 进入</div></div>
+            <div class="team-card" onclick="showQuality()" style="cursor:pointer"><div class="t-ic">📊</div><div class="t-name">数据质量看板</div><div class="t-role">采样率 / 校准质量</div><div class="t-act">› 进入</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PROFILE ===== -->
+      <section class="page" id="page-profile">
+        <div class="profile-hero reveal">
+          <div class="profile-avatar">陈</div>
+          <div class="profile-meta">
+            <div class="pm-name">陈医生 <span class="status-tag status-active" style="vertical-align:middle">儿康科主治</span></div>
+            <div class="pm-role">南京医科大学附属 · 儿童保健科 · 孤独症筛查专岗</div>
+            <div class="pm-id">EMP-1024 · chen.doctor@njmu.edu.cn</div>
+          </div>
+          <div class="profile-stats">
+            <div class="profile-stat"><div class="n">24</div><div class="l">累计筛查</div></div>
+            <div class="profile-stat"><div class="n">6</div><div class="l">在案干预</div></div>
+            <div class="profile-stat"><div class="n">92.4%</div><div class="l">数据合格率</div></div>
+          </div>
+        </div>
+        <div class="card reveal">
+          <div class="profile-tabs" id="profileTabs">
+            <div class="profile-tab active" data-ptab="account">账号资料</div>
+            <div class="profile-tab" data-ptab="security">账号安全</div>
+            <div class="profile-tab" data-ptab="notify">消息通知</div>
+            <div class="profile-tab" data-ptab="work">我的工作台</div>
+          </div>
+          <div id="profileTabBody"></div>
+        </div>
+      </section>
+
+      <!-- ===== LIBRARY ===== -->
+      <section class="page" id="page-library">
+        <div class="card reveal">
+          <div class="lib-toolbar">
+            <h2 style="font-size:16px;font-weight:700;margin-right:6px">资源库</h2>
+            <div class="chip" id="libPathChip">根目录</div>
+            <div class="spacer" style="flex:1"></div>
+            <button class="btn btn-ghost btn-sm" onclick="openLibModal('folder')">＋ 新建文件夹</button>
+            <button class="btn btn-ghost btn-sm" onclick="openLibModal('file')">＋ 新建文档</button>
+            <button class="btn btn-ghost btn-sm">上传文件</button>
+          </div>
+          <div class="lib-crumbs" id="libCrumbs"></div>
+          <div class="folder-grid" id="libGrid"></div>
+        </div>
+        <div class="card reveal">
+          <div class="section-head"><h2>最近使用</h2><div class="sub">近 7 天访问的资源</div></div>
+          <div class="table-wrap"><table><thead><tr><th>资源</th><th>类型</th><th>所在位置</th><th>最近访问</th><th>操作</th></tr></thead><tbody id="libRecent"></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- ===== SESSION DETAIL (collect L2) ===== -->
+      <section class="page" id="page-session"><div id="sessionBody"></div></section>
+
+      <!-- ===== FREE-VIEW TASK (collect L2) ===== -->
+      <section class="page" id="page-freeview"><div id="freeviewBody"></div></section>
+
+      <!-- ===== FREE-VIEW RESULT (collect L2) ===== -->
+      <section class="page" id="page-fvresult"><div id="fvresultBody"></div></section>
+
+      <!-- ===== QUALITY (collect L2) ===== -->
+      <section class="page" id="page-quality"><div id="qualityBody"></div></section>
+
+      <!-- ===== NEW CASE (cases L2) ===== -->
+      <section class="page" id="page-newcase"><div id="newcaseBody"></div></section>
+
+      <!-- ===== MODEL REPORT (report L2) ===== -->
+      <section class="page" id="page-modelreport"><div id="modelBody"></div></section>
+
+      <!-- ===== INTERVENTION PLAN (intervention L2) ===== -->
+      <section class="page" id="page-intervplan"><div id="intervPlanBody"></div></section>
+
+      <!-- ===== KINDERGARTEN (intervention L2) ===== -->
+      <section class="page" id="page-kindergarten"><div id="kindyBody"></div></section>
+
+      <!-- ===== DEVICE MGMT (settings L2) ===== -->
+      <section class="page" id="page-devicemgr"><div id="deviceBody"></div></section>
+
+      <!-- ===== DATA MGMT (settings L2) ===== -->
+      <section class="page" id="page-datamgr"><div id="dataBody"></div></section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ===== LOGIN OVERLAY (Demo：默认跳过登录，点个人中心"退出登录"可查看) ===== -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-logo">星</div>
+      <div>
+        <div class="login-title">星瞳 AI 筛查平台</div>
+        <div class="login-sub">XingTong · Joint Attention Screening</div>
+      </div>
+    </div>
+    <p class="login-tip">面向儿康科医生的<b>孤独症共同注意</b>眼动筛查工作台。本页为 <b>Demo 演示</b>，默认无需登录即可体验全部功能。</p>
+    <div class="login-form">
+      <div class="login-field"><label>账号</label><input id="loginUser" value="chen.doctor@njmu.edu.cn" /></div>
+      <div class="login-field"><label>密码</label><input id="loginPass" type="password" placeholder="请输入密码（Demo 任意）" /></div>
+      <div class="login-row">
+        <span class="remember"><input type="checkbox" checked id="loginRemember" /> 记住账号</span>
+        <span class="forgot">忘记密码？</span>
+      </div>
+      <button class="login-btn" onclick="doLogin()">登 录</button>
+    </div>
+    <div class="login-demo">也可 <button onclick="doLogin()">以演示身份直接进入</button>（跳过校验）</div>
+    <div class="login-foot">仅用于大创项目组会汇报 / 专利说明书 / 开题演示</div>
+  </div>
+</div>
+
+<!-- ===== MODAL (新建/删除确认) ===== -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <h3 id="modalTitle">新建</h3>
+    <div class="m-desc" id="modalDesc"></div>
+    <div class="m-body"><input id="modalInput" placeholder="" /></div>
+    <div class="m-actions">
+      <button class="m-cancel" onclick="closeLibModal()">取消</button>
+      <button class="m-confirm" id="modalConfirm" onclick="confirmLibModal()">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== HELPERS ===== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function fmt(n,d=0){return Number(n).toFixed(d);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ===== DATA ===== */
+const caseData=[
+  {id:'P-0024',name:'Ming Yang',sex:'男',age:'4.2y',score:87,risk:'risk',rja:'41.7%',date:'07-28',tff:'312',eyes:'22.1',gpi:'68',faces:'24.0',cares:'42',mchat:'高',note:'共同注意缺陷明显，眼神接触少，建议尽快干预。'},
+  {id:'P-0023',name:'Yuhao Zhao',sex:'男',age:'3.8y',score:79,risk:'risk',rja:'45.0%',date:'07-26',tff:'358',eyes:'26.9',gpi:'62',faces:'30.0',cares:'38',mchat:'高',note:'对头部线索有部分反应，手势线索跟随较差。'},
+  {id:'P-0022',name:'Xiaohan Wu',sex:'女',age:'5.1y',score:66,risk:'watch',rja:'58.3%',date:'07-24',tff:'289',eyes:'34.2',gpi:'51',faces:'40.0',cares:'33',mchat:'中',note:'眼神跟随基础尚可，需加强发起式共同注意。'},
+  {id:'P-0021',name:'Tiantian Li',sex:'女',age:'3.5y',score:71,risk:'watch',rja:'—',date:'07-22',tff:'—',eyes:'30.5',gpi:'56',faces:'35.0',cares:'35',mchat:'中',note:'自由观看偏好异常，几何偏好明显。'},
+  {id:'P-0020',name:'Ziming Chen',sex:'男',age:'4.8y',score:58,risk:'watch',rja:'66.7%',date:'07-20',tff:'245',eyes:'40.1',gpi:'44',faces:'48.0',cares:'29',mchat:'中',note:'基线数据，等待干预。'},
+  {id:'P-0019',name:'An\'an Su',sex:'女',age:'3.2y',score:24,risk:'low',rja:'72.2%',date:'07-18',tff:'198',eyes:'58.3',gpi:'30',faces:'62.0',cares:'21',mchat:'低',note:'各项指标接近典型发育，定期随访。'},
+  {id:'P-0018',name:'Haoran Liu',sex:'男',age:'4.4y',score:35,risk:'low',rja:'68.5%',date:'07-16',tff:'221',eyes:'52.0',gpi:'35',faces:'57.0',cares:'24',mchat:'低',note:'发育水平良好，眼动指标在正常范围。'},
+  {id:'P-0017',name:'Rui Wang',sex:'男',age:'3.9y',score:91,risk:'risk',rja:'33.3%',date:'07-14',tff:'455',eyes:'15.4',gpi:'74',faces:'20.0',cares:'45',mchat:'高',note:'极重度社交注意缺陷，建议转诊专科评估。'},
+];
+const riskLbl={risk:['高风险','status-risk'],watch:['观察中','status-watch'],low:['低风险','status-low']};
+const colors={risk:'#D9685C',watch:'#E2A13D',low:'#2FA88A',active:'#1F7A8C'};
+const tff3={risk:[312,358,412],watch:[245,268,289],low:[198,205,196]};
+const radarData={risk:{me:[18,22,68,24,20],td:[68,72,30,70,74]},watch:{me:[42,34,51,48,40],td:[68,72,30,70,74]},low:{me:[66,58,30,64,62],td:[68,72,30,70,74]}};
+
+/* ===== SIDEBAR STATE ===== */
+const app=$('#app'),sidebar=$('#sidebar'),overlay=$('#overlay');
+let isMobile=window.innerWidth<=768;
+function syncSidebar(){app.classList.toggle('collapsed',collapsed && !isMobile);app.classList.toggle('mobile-open',isMobile && mobileOpen);overlay.classList.toggle('show',isMobile && mobileOpen);}
+let collapsed=false,mobileOpen=false;
+
+/* ===== ROUTER ===== */
+let currentTop='collect';let currentDetail=null;
+const topTitles={collect:'数据采集',cases:'病案管理',report:'AI 筛查报告',intervention:'医教融合干预',library:'资源库',profile:'个人中心',settings:'系统设置'};
+const topSubtitles={collect:'共同注意 · 眼动筛查',cases:'患儿档案与随访',report:'眼动风险分析 · 总览',intervention:'医院-家庭-幼儿园联动',library:'筛查方案 · 干预素材 · 文献量表',profile:'账号资料 · 安全 · 消息 · 工作台',settings:'平台参数配置'};
+const topCrumbs={collect:'数据采集',cases:'病案管理',report:'AI 筛查报告',intervention:'医教融合干预',library:'资源库',profile:'个人中心',settings:'系统设置'};
+
+function goBack(){
+  if(currentDetail){
+    if(currentDetail.type==='session')showTop('collect');
+    else if(currentDetail.type==='quality')showTop('collect');
+    else if(currentDetail.type==='freeview'||currentDetail.type==='fvresult')showTop('collect');
+    else if(currentDetail.type==='newcase')showTop('cases');
+    else if(currentDetail.type==='model')showTop('report');
+    else if(currentDetail.type==='intervplan')showTop('intervention');
+    else if(currentDetail.type==='kindy')showTop('intervention');
+    else if(currentDetail.type==='device')showTop('settings');
+    else if(currentDetail.type==='datamgr')showTop('settings');
+    else if(currentDetail.type==='case')showTop('cases');
+    else if(currentDetail.type==='report')showTop('report');
+    else showTop(currentTop);
+  }
+  else if(isMobile){showTop('collect');}
+}
+function showTop(page){
+  currentTop=page;currentDetail=null;
+  $$('.nav-item').forEach(i=>i.classList.toggle('active',i.dataset.page===page));
+  $$('.page').forEach(p=>p.classList.remove('active'));
+  const el=$('#page-'+page);if(el)el.classList.add('active');
+  renderCrumb([topCrumbs[page]]);
+  $('#pageTitle').textContent=topSubtitles[page];
+  $('#backBtn').classList.toggle('show',false);
+  if(isMobile){closeMobile();}
+  initReveals();
+  if(page==='report')initOvCharts();
+  if(page==='intervention')renderIntervention();
+  if(page==='library')renderLibrary();
+  if(page==='profile')renderProfile();
+  window.scrollTo({top:0});
+}
+function showCaseDetail(id){
+  const c=caseData.find(x=>x.id===id);if(!c)return;
+  currentTop='cases';currentDetail={type:'case',id};
+  setActiveNav('cases');
+  $$('.page').forEach(p=>p.classList.remove('active'));
+  $('#page-casedetail').classList.add('active');
+  renderCrumb([topCrumbs.cases,{txt:c.name,act:'showTop(\'cases\')'}]);
+  $('#pageTitle').textContent='病案详情';
+  $('#backBtn').classList.toggle('show',true);
+  if(isMobile)closeMobile();
+  renderCaseDetail(c);
+  initReveals();
+  window.scrollTo({top:0});
+}
+function showReportDetail(id){
+  const c=caseData.find(x=>x.id===id);if(!c)return;
+  currentTop='report';currentDetail={type:'report',id};
+  setActiveNav('report');
+  $$('.page').forEach(p=>p.classList.remove('active'));
+  $('#page-reportdetail').classList.add('active');
+  renderCrumb([topCrumbs.report,{txt:c.name,act:'showTop(\'report\')'}]);
+  $('#pageTitle').textContent='筛查报告';
+  $('#backBtn').classList.toggle('show',true);
+  if(isMobile)closeMobile();
+  renderReportDetail(c);
+  initReveals();
+  window.scrollTo({top:0});
+}
+function setActiveNav(page){$$('.nav-item').forEach(i=>i.classList.toggle('active',i.dataset.page===page));}
+function renderCrumb(parts){
+  const el=$('#crumbLine');
+  el.innerHTML=parts.map(p=>{
+    if(typeof p==='string')return `<span class="here">${esc(p)}</span>`;
+    return `<button class="cbtn" onclick="${p.act}">‹ ${esc(p.txt)}</button>`;
+  }).join('<span class="sep"> / </span>');
+}
+$$('.nav-item').forEach(item=>item.addEventListener('click',()=>showTop(item.dataset.page)));
+$('#backBtn').addEventListener('click',goBack);
+$('#menuBtn').addEventListener('click',()=>{mobileOpen=!mobileOpen;syncSidebar();});
+overlay.addEventListener('click',closeMobile);
+function closeMobile(){mobileOpen=false;syncSidebar();}
+
+/* ===== COLLECT ===== */
+const collectRows=[
+  ['P-0024','RJA · 三线索','312','41.7%','94.2%','采集完成','07-28 10:24'],
+  ['P-0019','RJA · 三线索','208','62.5%','96.8%','采集完成','07-28 09:12'],
+  ['P-0024','自由观看','—','—','92.8%','采集完成','07-28 08:40'],
+  ['P-0021','自由观看','—','—','91.0%','分析中','07-27 15:40'],
+  ['P-0017','RJA · 三线索','455','33.3%','89.5%','采集完成','07-27 11:05'],
+  ['P-0019','自由观看','—','—','95.1%','待校准','07-26 16:30'],
+];
+function renderCollect(){
+  $('#collectTable').innerHTML=collectRows.map(r=>{
+    const tag=r[5]==='采集完成'?'<span class="status-tag status-active">采集完成</span>':r[5]==='分析中'?'<span class="status-tag status-watch">分析中</span>':'<span class="status-tag status-low">待校准</span>';
+    const isFv=r[1].indexOf('自由观看')>=0;
+    const click=isFv?`onclick="showFreeview('${r[0]}')"`:`onclick="showSession('${r[0]}','${r[1]}')"`;
+    return `<tr class="clickable" ${click}><td><div class="patient"><div class="p-avatar" style="background:${isFv?'#7B6B9C':'#2E7D8C'}">${r[0].slice(-2)}</div><div class="p-name">${r[0]}</div></div></td><td>${r[1]}</td><td class="score-cell">${r[2]}</td><td class="score-cell">${r[3]}</td><td>${r[4]}</td><td>${tag}</td><td style="color:var(--ink-soft)">${r[6]}</td></tr>`;
+  }).join('');
+}
+renderCollect();
+
+/* ===== CASES ===== */
+let caseFilter='all';
+function renderCases(){
+  const rows=caseData.filter(c=>caseFilter==='all'||c.risk===caseFilter);
+  $('#caseTable').innerHTML=rows.map(c=>{
+    const[lb,cls]=riskLbl[c.risk];
+    return `<tr class="clickable" onclick="showCaseDetail('${c.id}')"><td><div class="patient"><div class="p-avatar" style="background:${colors[c.risk]}">${esc(c.name[0])}</div><div><div class="p-name">${esc(c.name)}</div><div class="p-meta">${c.id}</div></div></div></td><td>${c.sex} / ${c.age}</td><td class="score-cell" style="color:${colors[c.risk]}">${c.score}<span class="mini">/100</span></td><td><span class="status-tag ${cls}">${lb}</span></td><td class="score-cell">${c.rja}</td><td>${c.date}</td><td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showCaseDetail('${c.id}')">查看</button> <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showReportDetail('${c.id}')">报告</button></td></tr>`;
+  }).join('');
+}
+renderCases();
+$$('#filterPills .fp').forEach(p=>p.addEventListener('click',()=>{
+  $$('#filterPills .fp').forEach(x=>x.classList.remove('active'));p.classList.add('active');
+  caseFilter=p.dataset.filter;renderCases();
+}));
+
+/* ===== CASE DETAIL ===== */
+function renderCaseDetail(c){
+  const[lb,cls]=riskLbl[c.risk];
+  const body=`
+  <div class="card reveal">
+    <div class="detail-head">
+      <div class="detail-avatar" style="background:${colors[c.risk]}">${esc(c.name[0])}</div>
+      <div>
+        <div class="detail-id">${c.id} · ${c.date} 建档</div>
+        <div class="detail-name">${esc(c.name)} <span class="status-tag ${cls}" style="vertical-align:middle">${lb}</span></div>
+        <div class="detail-meta"><span>性别 · ${c.sex}</span><span>年龄 · ${c.age}</span><span>AI 风险分 · <b style="color:${colors[c.risk]}">${c.score}</b>/100</span></div>
+      </div>
+      <div class="spacer" style="flex:1"></div>
+      <button class="btn btn-primary btn-sm" onclick="showReportDetail('${c.id}')">查看筛查报告</button>
+      <button class="btn btn-accent btn-sm" onclick="showIntervPlan()">干预方案</button>
+    </div>
+  </div>
+  <div class="grid grid-2 stagger">
+    <div class="card reveal">
+      <div class="section-head"><h2>基本信息</h2></div>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">出生日期</div><div class="v">${c.age} · 约 ${Math.round(2026-parseFloat(c.age))} 年</div></div>
+        <div class="info-item"><div class="k">监护人</div><div class="v">—</div></div>
+        <div class="info-item"><div class="k">来源科室</div><div class="v">儿童保健科</div></div>
+        <div class="info-item"><div class="k">M-CHAT 初筛</div><div class="v">${c.mchat}风险</div></div>
+      </div>
+    </div>
+    <div class="card reveal">
+      <div class="section-head"><h2>量表评估</h2></div>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">CARS 评分</div><div class="v">${c.cares}</div></div>
+        <div class="info-item"><div class="k">RJA 正确率</div><div class="v">${c.rja}</div></div>
+        <div class="info-item"><div class="k">ESCS · RJA</div><div class="v">待补</div></div>
+        <div class="info-item"><div class="k">ESCS · IJA</div><div class="v">待补</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>评估记录</h2><div class="chip">点击查看报告</div></div>
+    <div class="table-wrap"><table><thead><tr><th>筛查日期</th><th>任务</th><th>TFF (ms)</th><th>RJA 正确率</th><th>AI 风险</th><th>操作</th></tr></thead>
+    <tbody><tr class="clickable" onclick="showReportDetail('${c.id}')"><td>${c.date}</td><td>RJA · 三线索</td><td class="score-cell">${c.tff}</td><td class="score-cell">${c.rja}</td><td><span class="status-tag ${cls}">${lb}</span></td><td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showReportDetail('${c.id}')">查看</button></td></tr></tbody></table></div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>随访计划</h2><div class="chip">自动生成 · 可调整</div></div>
+    <div class="table-wrap"><table><thead><tr><th>类型</th><th>计划日期</th><th>内容</th><th>状态</th></tr></thead>
+    <tbody>
+      <tr><td>复测</td><td>${c.date} + 12周</td><td>RJA 三线索 + 自由观看偏好复测</td><td><span class="status-tag status-watch">待安排</span></td></tr>
+      <tr><td>量表</td><td>${c.date} + 12周</td><td>ESCS / CARS 复核</td><td><span class="status-tag status-watch">待安排</span></td></tr>
+      <tr><td>干预</td><td>每周</td><td>眼神跟随训练 · 家庭端打卡</td><td><span class="status-tag status-active">进行中</span></td></tr>
+    </tbody></table></div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>临床备注</h2></div>
+    <p style="font-size:13.5px;color:var(--ink-soft)">${esc(c.note)}</p>
+  </div>`;
+  $('#caseDetailBody').innerHTML=body;
+}
+
+/* ===== REPORT OVERVIEW ===== */
+let ovChartsInit=false;
+function initOvCharts(){
+  if(ovChartsInit||!window.Chart)return;
+  const donut=document.getElementById('ovDonut');
+  if(donut){
+    new Chart(donut,{type:'doughnut',
+      data:{labels:['高风险','观察中','低风险'],datasets:[{data:[6,9,9],backgroundColor:['#D9685C','#E2A13D','#2FA88A'],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'right',labels:{font:{size:11,family:'PingFang SC'},usePointStyle:true,padding:12}}}}});
+  }
+  const trend=document.getElementById('ovTrend');
+  if(trend){
+    new Chart(trend,{type:'line',
+      data:{labels:['2月','3月','4月','5月','6月','7月'],datasets:[{label:'筛查例数',data:[6,9,11,14,18,24],borderColor:'#1F7A8C',backgroundColor:'rgba(31,122,140,.12)',fill:true,tension:.4,pointRadius:3,borderWidth:2.5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#EEF3F5'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  }
+  ovChartsInit=true;
+}
+let rf='all';
+function renderReportTable(){
+  const rows=caseData.filter(c=>rf==='all'||c.risk===rf);
+  $('#reportTable').innerHTML=rows.map(c=>{
+    const[lb,cls]=riskLbl[c.risk];
+    return `<tr class="clickable" onclick="showReportDetail('${c.id}')"><td><div class="patient"><div class="p-avatar" style="background:${colors[c.risk]}">${esc(c.name[0])}</div><div><div class="p-name">${esc(c.name)}</div><div class="p-meta">${c.id}</div></div></div></td><td class="score-cell" style="color:${colors[c.risk]}">${c.score}<span class="mini">/100</span></td><td><span class="status-tag ${cls}">${lb}</span></td><td class="score-cell">${c.tff}</td><td class="score-cell">${c.rja}</td><td>${c.date}</td><td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showReportDetail('${c.id}')">查看</button></td></tr>`;
+  }).join('');
+}
+renderReportTable();
+$$('#reportFilter .fp').forEach(p=>p.addEventListener('click',()=>{
+  $$('#reportFilter .fp').forEach(x=>x.classList.remove('active'));p.classList.add('active');
+  rf=p.dataset.rf;renderReportTable();
+}));
+
+/* ===== REPORT DETAIL ===== */
+function renderReportDetail(c){
+  const[lb,cls]=riskLbl[c.risk];
+  const rd=radarData[c.risk]||radarData.watch;
+  const tff=tff3[c.risk]||tff3.watch;
+  const body=`
+  <div class="card reveal">
+    <div class="detail-head">
+      <div class="detail-avatar" style="background:${colors[c.risk]}">${esc(c.name[0])}</div>
+      <div>
+        <div class="detail-id">${c.id} · 筛查日期 ${c.date}</div>
+        <div class="detail-name">${esc(c.name)} <span class="status-tag ${cls}" style="vertical-align:middle">${lb}</span></div>
+        <div class="detail-meta"><span>性别 · ${c.sex}</span><span>年龄 · ${c.age}</span><span>模型 v2.1</span></div>
+      </div>
+      <div class="spacer" style="flex:1"></div>
+      <button class="btn btn-ghost btn-sm">打印 PDF</button>
+      <button class="btn btn-primary btn-sm">生成筛查报告</button>
+    </div>
+  </div>
+  <div class="grid grid-3 stagger">
+    <div class="card reveal">
+      <div class="section-head"><h2>AI 风险评分</h2><div class="chip">模型 v2.1</div></div>
+      <div class="gauge-wrap">
+        <div class="gauge"><svg width="190" height="190"><circle cx="95" cy="95" r="81" fill="none" stroke="#E7EFF1" stroke-width="16"/><circle cx="95" cy="95" r="81" fill="none" stroke="url(#gGrad)" stroke-width="16" stroke-linecap="round" stroke-dasharray="509" stroke-dashoffset="509" class="g-arc"/><defs><linearGradient id="gGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#D9685C"/><stop offset="100%" stop-color="#F5A65B"/></linearGradient></defs></svg>
+          <div class="g-txt"><div class="g-score" data-score="${c.score}">0</div><div class="g-lbl">/ 100 · 风险分</div></div></div>
+        <div class="verdict ${c.risk==='risk'?'high':c.risk==='watch'?'mid':'low'}">${c.risk==='risk'?'⚠ 高风险':c.risk==='watch'?'◐ 观察中':'✓ 低风险'}</div>
+        <div class="count-note" style="text-align:center">Model output · AI-assisted, physician review required</div>
+      </div>
+    </div>
+    <div class="card reveal span-2">
+      <div class="section-head"><h2>眼动指标雷达</h2><div class="chip">标准分对比</div></div>
+      <div class="chart-box tall"><canvas id="rRadar"></canvas></div>
+    </div>
+  </div>
+  <div class="grid grid-2 stagger">
+    <div class="card reveal">
+      <div class="section-head"><h2>三线索 TFF 对比</h2><div class="sub">仅眼睛 / 眼睛+头 / 眼睛+头+手势</div></div>
+      <div class="chart-box"><canvas id="rBar"></canvas></div>
+    </div>
+    <div class="card reveal">
+      <div class="section-head"><h2>关键指标一览</h2></div>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">首次注视目标时间 TFF</div><div class="v">${c.tff} ms</div></div>
+        <div class="info-item"><div class="k">RJA 正确率</div><div class="v">${c.rja}</div></div>
+        <div class="info-item"><div class="k">眼睛区域注视占比</div><div class="v">${c.eyes} %</div></div>
+        <div class="info-item"><div class="k">几何图形偏好指数</div><div class="v">${c.gpi} %</div></div>
+      </div>
+      <div style="margin-top:14px" class="section-head"><h2 style="font-size:14px">特征贡献</h2><div class="chip">SHAP</div></div>
+      <div id="rFeat"></div>
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>筛查结论与建议</h2></div>
+    <div class="info-item" style="margin-bottom:10px"><div class="v" style="font-size:14px">${esc(c.note)}</div></div>
+    <div class="grid grid-3">
+      <div class="info-item"><div class="k">建议 1</div><div class="v" style="font-size:13px">尽快完成临床确诊评估</div></div>
+      <div class="info-item"><div class="k">建议 2</div><div class="v" style="font-size:13px">启动共同注意干预训练</div></div>
+      <div class="info-item"><div class="k">建议 3</div><div class="v" style="font-size:13px">12 周后复测追踪</div></div>
+    </div>
+  </div>`;
+  $('#reportDetailBody').innerHTML=body;
+  requestAnimationFrame(()=>{
+    if(!window.Chart)return;
+    const radar=$('#rRadar');
+    if(radar){
+      new Chart(radar,{type:'radar',
+        data:{labels:['目标区注视','眼睛区域','几何偏好(反)','注意转换','面孔偏好'],
+          datasets:[{label:'当前患儿',data:rd.me,borderColor:'#D9685C',backgroundColor:'rgba(217,104,92,.16)',pointBackgroundColor:'#D9685C',borderWidth:2},
+            {label:'典型发育组',data:rd.td,borderColor:'#2FA88A',backgroundColor:'rgba(47,168,138,.12)',pointBackgroundColor:'#2FA88A',borderWidth:2}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11,family:'PingFang SC'},usePointStyle:true,padding:14}}},scales:{r:{min:0,max:100,ticks:{stepSize:25,backdropColor:'transparent',font:{size:9,color:'#5B7A82'}},grid:{color:'#E3ECEF'},angleLines:{color:'#E3ECEF'},pointLabels:{font:{size:11}}}}}});
+    }
+    const bar=$('#rBar');
+    if(bar){
+      new Chart(bar,{type:'bar',
+        data:{labels:['仅眼睛','眼睛+头部','眼睛+头+手势'],
+          datasets:[{label:'当前患儿 (ms)',data:tff,backgroundColor:'#D9685C',borderRadius:8,barPercentage:.55},
+            {label:'典型发育组 (ms)',data:[198,205,196],backgroundColor:'#2FA88A',borderRadius:8,barPercentage:.55}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11,family:'PingFang SC'},usePointStyle:true,padding:14}}},scales:{y:{beginAtZero:true,grid:{color:'#EEF3F5'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+    }
+    const feats=[['首次注视目标时间 TFF',86,'#D9685C'],['RJA 正确率',78,'#E2A13D'],['眼睛区域注视占比',64,'#1F7A8C'],['几何图形偏好指数',52,'#2FA88A']];
+    $('#rFeat').innerHTML=feats.map(f=>`<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>${f[0]}</span><span style="font-weight:700">${f[1]}</span></div><div style="height:6px;background:#E7EFF1;border-radius:6px;overflow:hidden"><i style="display:block;height:100%;width:${f[1]}%;background:${f[2]};border-radius:6px"></i></div></div>`).join('');
+    const arcs=$$('.g-arc');const scores=$$('[data-score]');
+    const target=parseInt(scores[0]?.dataset.score||87);
+    const t0=performance.now();
+    function gTick(t){const p=Math.min((t-t0)/1400,1),e=1-Math.pow(1-p,3),v=target*e;
+      arcs.forEach(a=>a.style.strokeDashoffset=509*(1-v/100));
+      scores.forEach(s=>s.textContent=Math.round(v));
+      if(p<1)requestAnimationFrame(gTick);}
+    requestAnimationFrame(gTick);
+  });
+}
+
+/* ===== INTERVENTION ===== */
+let intervRendered=false;
+function renderIntervention(){
+  if(intervRendered)return;intervRendered=true;
+  const days=[{d:'周一',n:'15',t:'眼神跟随'},{d:'周二',n:'16',t:'自由观看'},{d:'周三',n:'17',t:'眼神跟随'},{d:'周四',n:'18',t:'亲子游戏'},{d:'周五',n:'19',t:'眼神跟随'},{d:'周六',n:'20',t:'融合课堂'},{d:'周日',n:'21',t:'反馈提交'}];
+  const todayIdx=3;
+  $('#weekStrip').innerHTML=days.map((x,i)=>`
+    <div class="day ${i<todayIdx?'done':i===todayIdx?'today':''}"><div class="d">${x.d}</div><div class="n">${x.n}</div><div class="t">${x.t}</div></div>`).join('');
+  const tasks=[['眼神跟随 · 第3组','Mon · Wed · Fri · 15 min',true],['自由观看视频 · 人脸','每日睡前 · 5 min',true],['亲子共同注意游戏','Sat · 20 min · 互动记录',false],['幼儿园融合反馈表','Sun · 教师填写',false]];
+  $('#taskList').innerHTML=tasks.map((t,i)=>`
+    <div class="task-check ${t[2]?'done':''}" onclick="this.classList.toggle('done')"><div class="cb">✓</div><div class="t-info"><div class="t-name">${t[0]}</div><div class="t-meta">${t[1]}</div></div><span class="status-tag ${t[2]?'status-active':'status-watch'}">${t[2]?'完成':'待完成'}</span></div>`).join('');
+}
+
+/* ============ L2 ROUTER HELPERS ============ */
+function openPage(pageId, crumbParts, title, nav, detail){
+  currentTop=nav;currentDetail=detail||{type:pageId.replace('page-','')};
+  setActiveNav(nav);
+  $$('.page').forEach(p=>p.classList.remove('active'));
+  $('#'+pageId).classList.add('active');
+  renderCrumb(crumbParts);
+  $('#pageTitle').textContent=title;
+  $('#backBtn').classList.toggle('show',true);
+  if(isMobile)closeMobile();
+  initReveals();
+  window.scrollTo({top:0});
+}
+
+/* ===== SESSION DETAIL ===== */
+function showSession(id,task){
+  const c=caseData.find(x=>x.id===id);
+  const trials=[
+    {i:1,cue:'仅眼睛',ok:true,tff:286,fix:'目标区 340ms'},
+    {i:2,cue:'眼睛+头部',ok:true,tff:302,fix:'目标区 410ms'},
+    {i:3,cue:'眼睛+头+手势',ok:true,tff:295,fix:'目标区 388ms'},
+    {i:4,cue:'仅眼睛',ok:false,tff:720,fix:'非目标区 610ms'},
+    {i:5,cue:'眼睛+头部',ok:true,tff:338,fix:'目标区 366ms'},
+    {i:6,cue:'眼睛+头+手势',ok:true,tff:311,fix:'目标区 402ms'},
+    {i:7,cue:'仅眼睛',ok:false,tff:690,fix:'线索区 540ms'},
+    {i:8,cue:'眼睛+头部',ok:true,tff:325,fix:'目标区 350ms'},
+    {i:9,cue:'眼睛+头+手势',ok:true,tff:300,fix:'目标区 415ms'},
+    {i:10,cue:'仅眼睛',ok:true,tff:340,fix:'目标区 372ms'},
+    {i:11,cue:'眼睛+头部',ok:true,tff:290,fix:'目标区 355ms'},
+    {i:12,cue:'眼睛+头+手势',ok:true,tff:308,fix:'目标区 390ms'},
+  ];
+  const hits=trials.filter(t=>t.ok).length;
+  const body=`
+  <div class="card reveal">
+    <div class="detail-head">
+      <div class="detail-avatar" style="background:#2E7D8C">${id.slice(-2)}</div>
+      <div>
+        <div class="detail-id">${id} · 会话 ${c?c.date:'07-28'}</div>
+        <div class="detail-name">${task} <span class="status-tag status-active" style="vertical-align:middle">采集完成</span></div>
+        <div class="detail-meta"><span>采样率 94.2%</span><span>时长 4:52</span><span>试次 12 / 12</span></div>
+      </div>
+      <div class="spacer" style="flex:1"></div>
+      <button class="btn btn-ghost btn-sm">重放视频</button>
+      <button class="btn btn-primary btn-sm" onclick="showReportDetail('${id}')">生成筛查报告</button>
+    </div>
+  </div>
+  <div class="grid grid-2 stagger">
+    <div class="card reveal">
+      <div class="section-head"><h2>眼动轨迹重放</h2><div class="chip">Tobii · 60Hz</div></div>
+      <div class="eye-stage" id="replayStage" style="aspect-ratio:16/7">
+        <div class="tobii-tag">REPLAY · 试次 3 / 12</div>
+        <div class="center-hint" id="replayHint">▶ 目标区命中</div>
+        <div class="focus" id="replayDot"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-accent btn-sm" onclick="toggleReplay()">⏯ 播放 / 暂停</button>
+        <button class="btn btn-ghost btn-sm">帧步进</button>
+        <button class="btn btn-ghost btn-sm">导出轨迹图</button>
+      </div>
+    </div>
+    <div class="card reveal">
+      <div class="section-head"><h2>试次明细</h2><div class="chip">正确 ${hits} / 12</div></div>
+      <div style="max-height:400px;overflow-y:auto;padding-right:6px">
+        ${trials.map(t=>`
+        <div class="trial-row">
+          <div class="trial-idx ${t.ok?'hit':'miss'}">${t.i}</div>
+          <div class="trial-info"><div class="trial-cue">${t.cue}</div><div class="trial-meta">${t.fix}</div></div>
+          <div class="trial-val ${t.ok?'hit':'miss'}">${t.ok?'✓ 命中':'✗ 未命中'}</div>
+          <div class="trial-val" style="min-width:56px;text-align:right">${t.tff}ms</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>本会话指标</h2></div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="k">RJA 正确率</div><div class="v ${hits/12>=.5?'ok':'bad'}">${(hits/12*100).toFixed(1)}%</div><div class="s">${hits}/12 试次命中</div></div>
+      <div class="kpi"><div class="k">平均 TFF</div><div class="v info">${Math.round(trials.filter(t=>t.ok).reduce((a,b)=>a+b.tff,0)/hits)}ms</div><div class="s">仅命中试次</div></div>
+      <div class="kpi"><div class="k">目标区注视占比</div><div class="v">41.7%</div><div class="s">总注视时长</div></div>
+      <div class="kpi"><div class="k">采样率</div><div class="v ok">94.2%</div><div class="s">>80% 达标</div></div>
+    </div>
+  </div>`;
+  $('#sessionBody').innerHTML=body;
+  openPage('page-session',[topCrumbs.collect,{txt:task,act:'showTop(\'collect\')'}],'采集会话详情','collect',{type:'session'});
+  requestAnimationFrame(initReplay);
+}
+
+/* ===== REPLAY ===== */
+let replayTimer=null;
+function initReplay(){
+  const st=$('#replayStage');if(!st)return;
+  const dot=$('#replayDot'),hint=$('#replayHint');
+  let px=.5,py=.4,tx=.72,ty=.5;
+  if(replayTimer)clearInterval(replayTimer);
+  replayTimer=setInterval(()=>{if(Math.random()<.12){tx=Math.random()*.6+.25;ty=Math.random()*.5+.3;}} ,1500);
+  (function f(){px+=(tx-px)*.05;py+=(ty-py)*.05;dot.style.left=(px*100)+'%';dot.style.top=(py*100)+'%';requestAnimationFrame(f);})();
+  hint.textContent='▶ 目标区命中 · 试次 3 / 12';
+}
+function toggleReplay(){/* demo: no-op */}
+
+/* ===== FREE-VIEW TASK (自由观看偏好任务) ===== */
+const fvTrials=[
+  {i:1,stim:'人脸分屏',eye:26,face:58,geo:30,other:14},
+  {i:2,stim:'几何分屏',eye:18,face:44,geo:52,other:30},
+  {i:3,stim:'人脸分屏',eye:29,face:62,geo:24,other:14},
+  {i:4,stim:'几何分屏',eye:15,face:40,geo:58,other:27},
+  {i:5,stim:'人脸分屏',eye:24,face:55,geo:33,other:12},
+  {i:6,stim:'几何分屏',eye:20,face:46,geo:49,other:31},
+];
+function showFreeview(id){
+  const c=caseData.find(x=>x.id===id)||caseData[0];
+  const body=`
+  <div class="card reveal">
+    <div class="detail-head">
+      <div class="detail-avatar" style="background:#7B6B9C">◉</div>
+      <div>
+        <div class="detail-id">${c.id} · 自由观看偏好任务</div>
+        <div class="detail-name">人脸 vs 几何图形 分屏刺激 <span class="status-tag status-active" style="vertical-align:middle">采集完成</span></div>
+        <div class="detail-meta"><span>采样率 92.8%</span><span>时长 3:20</span><span>试次 6 / 6</span></div>
+      </div>
+      <div class="spacer" style="flex:1"></div>
+      <button class="btn btn-ghost btn-sm" onclick="showFvResult('${c.id}')">查看结果</button>
+      <button class="btn btn-primary btn-sm" onclick="showFvResult('${c.id}')">生成分析</button>
+    </div>
+  </div>
+  <div class="grid grid-2 stagger">
+    <div class="card reveal">
+      <div class="section-head"><h2>分屏刺激重放</h2><div class="chip">Tobii · 60Hz</div></div>
+      <div class="fv-stage" id="fvStage">
+        <div class="tobii-tag">FREE-VIEW · 试次 2 / 6</div>
+        <div class="rec"><span class="rec-dot"></span>REC · 01:12</div>
+        <div class="fv-half left">
+          <div class="fv-label">人脸</div>
+          <div class="fv-face"></div>
+          <span class="fv-aoi-tag">AOI-E 眼睛区</span>
+        </div>
+        <div class="fv-half right">
+          <div class="fv-label">几何图形</div>
+          <div class="fv-geo"><span class="g1"></span><span class="g2"></span><span class="g3"></span></div>
+        </div>
+        <div class="fv-heat" id="fvHeat1" style="left:32%;top:38%"></div>
+        <div class="fv-heat cool" id="fvHeat2" style="left:78%;top:46%"></div>
+        <div class="center-hint" id="fvHint">▶ 正在采集 · 面部区域</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-accent btn-sm" onclick="toggleFvReplay()">⏯ 播放 / 暂停</button>
+        <button class="btn btn-ghost btn-sm">帧步进</button>
+        <button class="btn btn-ghost btn-sm">导出轨迹图</button>
+      </div>
+    </div>
+    <div class="card reveal">
+      <div class="section-head"><h2>实时注视偏好</h2><div class="chip">Auto · 60Hz</div></div>
+      <div class="param-grid">
+        <div class="param"><div class="k">眼睛区域注视占比 EYE-PDT</div><div class="v"><span id="fvEye">26.9</span><small> %</small></div><div class="bar"><i style="width:27%"></i></div></div>
+        <div class="param"><div class="k">几何图形偏好指数 GPI</div><div class="v"><span id="fvGpi">52.0</span><small> %</small></div><div class="bar"><i style="width:52%"></i></div></div>
+        <div class="param"><div class="k">面孔区域注视占比</div><div class="v"><span id="fvFace">46.0</span><small> %</small></div><div class="bar"><i style="width:46%"></i></div></div>
+        <div class="param"><div class="k">注视总时长</div><div class="v"><span id="fvDwell">12.8</span><small> s</small></div><div class="bar"><i style="width:64%"></i></div></div>
+      </div>
+      <div style="margin-top:14px" class="section-head"><h2 style="font-size:14px">兴趣区注视时长占比</h2></div>
+      <div id="fvRegionBar"></div>
+      <div class="region-legend" id="fvLegend"></div>
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>试次明细</h2><div class="chip">注视偏好随刺激切换</div></div>
+    <div style="max-height:360px;overflow-y:auto;padding-right:6px">
+      ${fvTrials.map(t=>`
+      <div class="trial-row">
+        <div class="trial-idx">${t.i}</div>
+        <div class="trial-info"><div class="trial-cue">${t.stim}</div><div class="trial-meta">眼睛 ${t.eye}% · 面孔 ${t.face}% · 几何 ${t.geo}% · 其他 ${t.other}%</div></div>
+        <div class="trial-val" style="min-width:130px"><span style="color:var(--ink-2)">EYE ${t.eye}%</span></div>
+        <div class="trial-val" style="min-width:100px"><span style="color:var(--warn)">GPI ${t.geo}%</span></div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+  $('#freeviewBody').innerHTML=body;
+  openPage('page-freeview',[topCrumbs.collect,{txt:'自由观看任务',act:'showTop(\'collect\')'}],'自由观看偏好任务','collect',{type:'freeview',id});
+  requestAnimationFrame(initFvStage);
+}
+let fvTimer=null;
+function initFvStage(){
+  const st=$('#fvStage');if(!st)return;
+  const h1=$('#fvHeat1'),h2=$('#fvHeat2'),hint=$('#fvHint');
+  const eye=$('#fvEye'),gpi=$('#fvGpi'),face=$('#fvFace'),dwell=$('#fvDwell');
+  let t=0;
+  if(fvTimer)clearInterval(fvTimer);
+  fvTimer=setInterval(()=>{
+    t=(t%6)+1;
+    hint.textContent='▶ 正在采集 · 试次 '+t+' / 6'+(t===6?' · 即将完成':'');
+    if(t===6)hint.textContent='✅ 任务完成 · 数据已保存';
+    const tBase=fvTrials[t-1]||fvTrials[0];
+    const jitter=k=>Math.max(0,Math.min(100,tBase[k]+(Math.random()-.5)*6));
+    const e=jitter('eye'),g=jitter('geo'),f=jitter('face');
+    eye.textContent=e.toFixed(1);gpi.textContent=g.toFixed(1);face.textContent=f.toFixed(1);
+    dwell.textContent=(12+Math.random()*2).toFixed(1);
+    // move heat dots: face half vs geo half
+    const faceTilt=Math.min(Math.max((f-50)/50,-1),1); // >0 = more face
+    h1.style.left=(26+faceTilt*10+Math.random()*6)+'%';h1.style.top=(30+Math.random()*40)+'%';
+    h2.style.left=(72+(faceTilt*-8)+Math.random()*8)+'%';h2.style.top=(32+Math.random()*36)+'%';
+    renderRegionBar(e,f,g);
+  },4200);
+  // initial
+  renderRegionBar(26.9,46,52);
+}
+function renderRegionBar(eye,face,geo){
+  const bar=$('#fvRegionBar');if(!bar)return;
+  const e=Math.max(0,Math.min(100,eye));
+  const f=Math.max(0,Math.min(100,face));
+  const g=Math.max(0,Math.min(100,geo));
+  const faceRest=Math.max(0,f-e);      // 面孔区除去眼睛部分
+  const other=Math.max(0,100-f-g);     // 其他区域
+  bar.innerHTML=`<div class="region-bar">
+    <i style="width:${e}%;background:var(--ink-2)"></i>
+    <i style="width:${faceRest}%;background:#8A9FB8"></i>
+    <i style="width:${g}%;background:var(--warn)"></i>
+    <i style="width:${other}%;background:#C9D9DD"></i></div>`;
+  $('#fvLegend').innerHTML=`
+    <span class="rg"><span class="sw" style="background:var(--ink-2)"></span>眼睛区 AOI-E ${e.toFixed(1)}%</span>
+    <span class="rg"><span class="sw" style="background:#8A9FB8"></span>面孔区(除眼睛) ${faceRest.toFixed(1)}%</span>
+    <span class="rg"><span class="sw" style="background:var(--warn)"></span>几何图形区 ${g.toFixed(1)}%</span>
+    <span class="rg"><span class="sw" style="background:#C9D9DD"></span>其他区 ${other.toFixed(1)}%</span>`;
+}
+function toggleFvReplay(){/* demo: no-op */}
+
+/* ===== FREE-VIEW RESULT ===== */
+function showFvResult(id){
+  const c=caseData.find(x=>x.id===id)||caseData[0];
+  const eyeV=parseFloat(c.eyes||0),gpiV=parseFloat(c.gpi||0),faceV=parseFloat(c.faces||0);
+  const low=eyeV<40;
+  const body=`
+  <div class="card reveal">
+    <div class="detail-head">
+      <div class="detail-avatar" style="background:#7B6B9C">◉</div>
+      <div>
+        <div class="detail-id">${c.id} · 自由观看偏好任务</div>
+        <div class="detail-name">${esc(c.name)} · 自由观看分析结果 <span class="status-tag ${c.risk==='risk'?'status-risk':c.risk==='watch'?'status-watch':'status-low'}" style="vertical-align:middle">${riskLbl[c.risk][0]}</span></div>
+        <div class="detail-meta"><span>性别 · ${c.sex}</span><span>年龄 · ${c.age}</span><span>任务完成 · ${c.date}</span></div>
+      </div>
+      <div class="spacer" style="flex:1"></div>
+      <button class="btn btn-ghost btn-sm">打印 PDF</button>
+      <button class="btn btn-primary btn-sm">生成筛查报告</button>
+    </div>
+  </div>
+  <div class="grid grid-3 stagger">
+    <div class="card reveal">
+      <div class="section-head"><h2>眼睛区域注视占比</h2><div class="chip">EYE-PDT</div></div>
+      <div class="gauge-wrap">
+        <div class="gauge"><svg width="170" height="170"><circle cx="85" cy="85" r="70" fill="none" stroke="#E7EFF1" stroke-width="14"/><circle cx="85" cy="85" r="70" fill="none" stroke="url(#evGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="440" class="g-arc-eyes"/><defs><linearGradient id="evGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#1F7A8C"/><stop offset="100%" stop-color="#5BC9AE"/></linearGradient></defs></svg>
+          <div class="g-txt"><div class="g-score" data-eyes="${eyeV}">0</div><div class="g-lbl">% · EYE-PDT</div></div></div>
+        <div class="count-note" style="text-align:center">典型发育组参考值 55–75%</div>
+      </div>
+    </div>
+    <div class="card reveal">
+      <div class="section-head"><h2>几何图形偏好指数</h2><div class="chip">GPI</div></div>
+      <div class="gauge-wrap">
+        <div class="gauge"><svg width="170" height="170"><circle cx="85" cy="85" r="70" fill="none" stroke="#E7EFF1" stroke-width="14"/><circle cx="85" cy="85" r="70" fill="none" stroke="url(#ggGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="440" class="g-arc-gpi"/><defs><linearGradient id="ggGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#F5A65B"/><stop offset="100%" stop-color="#D9685C"/></linearGradient></defs></svg>
+          <div class="g-txt"><div class="g-score" data-gpi="${gpiV}">0</div><div class="g-lbl">% · GPI</div></div></div>
+        <div class="count-note" style="text-align:center">典型发育组参考值 15–30%</div>
+      </div>
+    </div>
+    <div class="card reveal">
+      <div class="section-head"><h2>面孔区域注视占比</h2><div class="chip">FACE-PDT</div></div>
+      <div class="gauge-wrap">
+        <div class="gauge"><svg width="170" height="170"><circle cx="85" cy="85" r="70" fill="none" stroke="#E7EFF1" stroke-width="14"/><circle cx="85" cy="85" r="70" fill="none" stroke="url(#ffGrad)" stroke-width="14" stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="440" class="g-arc-face"/><defs><linearGradient id="ffGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8A9FB8"/><stop offset="100%" stop-color="#6BB5C4"/></linearGradient></defs></svg>
+          <div class="g-txt"><div class="g-score" data-face="${faceV}">0</div><div class="g-lbl">% · FACE-PDT</div></div></div>
+        <div class="count-note" style="text-align:center">典型发育组参考值 75–90%</div>
+      </div>
+    </div>
+  </div>
+  <div class="grid grid-2 stagger">
+    <div class="card reveal">
+      <div class="section-head"><h2>兴趣区注视时长分布</h2><div class="chip">全部试次</div></div>
+      <div class="chart-box tall"><canvas id="fvRegionChart"></canvas></div>
+    </div>
+    <div class="card reveal">
+      <div class="section-head"><h2>与典型发育组对比</h2><div class="chip">标准分</div></div>
+      <div class="chart-box tall"><canvas id="fvCompareChart"></canvas></div>
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>临床判读</h2><div class="chip">AI 辅助 · 需医师确认</div></div>
+    <div class="info-item" style="margin-bottom:10px"><div class="v" style="font-size:14px">${low?'该患儿眼睛区域注视占比显著低于典型发育水平，几何图形偏好指数升高，呈现孤独症谱系障碍典型的"社会注意减少、非社会性刺激偏好增强"特征，建议结合应答式共同注意指标综合判读。':'该患儿自由观看阶段社会性注视偏好总体在参考范围内，建议结合应答式共同注意指标综合判读。'}</div></div>
+    <div class="grid grid-3">
+      <div class="info-item"><div class="k">建议 1</div><div class="v" style="font-size:13px">社会性偏好激活训练</div></div>
+      <div class="info-item"><div class="k">建议 2</div><div class="v" style="font-size:13px">人脸注视强化干预</div></div>
+      <div class="info-item"><div class="k">建议 3</div><div class="v" style="font-size:13px">12 周后复测对比</div></div>
+    </div>
+  </div>`;
+  $('#fvresultBody').innerHTML=body;
+  openPage('page-fvresult',[topCrumbs.collect,{txt:'自由观看任务',act:'showTop(\'collect\')'},c.name],'自由观看分析结果','collect',{type:'fvresult',id});
+  requestAnimationFrame(()=>{
+    if(!window.Chart)return;
+    const rv=$('#fvRegionChart');
+    if(rv)new Chart(rv,{type:'doughnut',
+      data:{labels:['眼睛区 AOI-E','面孔区(除眼睛)','几何图形区','其他区'],datasets:[{data:[eyeV,Math.max(0,faceV-eyeV),gpiV,Math.max(0,100-faceV-gpiV)],backgroundColor:['#1F7A8C','#8A9FB8','#F5A65B','#C9D9DD'],borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'right',labels:{font:{size:11,family:'PingFang SC'},usePointStyle:true,padding:12}}}}});
+    const cmp=$('#fvCompareChart');
+    if(cmp)new Chart(cmp,{type:'bar',
+      data:{labels:['EYE-PDT','FACE-PDT','GPI'],
+        datasets:[{label:'当前患儿 (%)',data:[eyeV,faceV,gpiV],backgroundColor:'#D9685C',borderRadius:8,barPercentage:.5},
+          {label:'典型发育组 (%)',data:[65,82,22],backgroundColor:'#2FA88A',borderRadius:8,barPercentage:.5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11,family:'PingFang SC'},usePointStyle:true,padding:14}}},scales:{y:{beginAtZero:true,grid:{color:'#EEF3F5'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+    // gauges
+    const arc1=document.querySelector('.g-arc-eyes');
+    const scoreE=document.querySelector('[data-eyes]');
+    const t0=performance.now();
+    (function gTick(t){const p=Math.min((t-t0)/1400,1),e=1-Math.pow(1-p,3),v=eyeV*e;
+      if(arc1)arc1.style.strokeDashoffset=440*(1-v/100);
+      if(scoreE)scoreE.textContent=Math.round(v);
+      if(p<1)requestAnimationFrame(gTick);})();
+    const arc2=document.querySelector('.g-arc-gpi');
+    const scoreG=document.querySelector('[data-gpi]');
+    const t1=performance.now();
+    (function gTick2(t){const p=Math.min((t-t1)/1400,1),e=1-Math.pow(1-p,3),v=gpiV*e;
+      if(arc2)arc2.style.strokeDashoffset=440*(1-v/100);
+      if(scoreG)scoreG.textContent=Math.round(v);
+      if(p<1)requestAnimationFrame(gTick2);})();
+    const arc3=document.querySelector('.g-arc-face');
+    const scoreF=document.querySelector('[data-face]');
+    const t2=performance.now();
+    (function gTick3(t){const p=Math.min((t-t2)/1400,1),e=1-Math.pow(1-p,3),v=faceV*e;
+      if(arc3)arc3.style.strokeDashoffset=440*(1-v/100);
+      if(scoreF)scoreF.textContent=Math.round(v);
+      if(p<1)requestAnimationFrame(gTick3);})();
+  });
+}
+
+/* ===== QUALITY ===== */
+function showQuality(){
+  const quals=[['总体采样率','各眼动数据中有效样本占比',94.2,'good'],['左眼采样率','左眼追踪有效比例',95.1,'good'],['右眼采样率','右眼追踪有效比例',93.0,'good'],['校准质量 - 五点','五点校准平均精度',88.4,'good'],['追踪丢失时长','单次丢失>250ms 片段数',12,'fair'],['注视点抖动','相邻注视点平均位移',4.2,'fair']];
+  const body=`
+  <div class="card reveal">
+    <div class="section-head"><h2>数据质量看板</h2><div class="chip">近 30 天汇总</div><div class="spacer"></div><button class="btn btn-ghost btn-sm">导出质量报告</button></div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="k">平均采样率</div><div class="v ok">92.4%</div><div class="s">达标阈值 80%</div></div>
+      <div class="kpi"><div class="k">合格会话</div><div class="v">19 / 24</div><div class="s">79.2%</div></div>
+      <div class="kpi"><div class="k">校准良好会话</div><div class="v info">16 / 24</div><div class="s">五点校准精度</div></div>
+      <div class="kpi"><div class="k">待重采</div><div class="v bad">5 例</div><div class="s">采样率<80%</div></div>
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>质量指标</h2><div class="chip">Tobii Pro Lab</div></div>
+    <div style="max-height:380px;overflow-y:auto;padding-right:6px">
+      ${quals.map(q=>`
+      <div class="qual-row">
+        <div class="qual-dot ${q[3]}"></div>
+        <div class="qual-info"><div class="qual-name">${q[0]}</div><div class="qual-desc">${q[1]}</div></div>
+        <div class="qual-pct">${q[2]}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>校准质量</h2><div class="sub">五点校准精度（近 7 天）</div></div>
+    <div class="chart-box sm"><canvas id="calChart"></canvas></div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>会话质量明细</h2><div class="chip">采样率 &lt;80% 标记待重采</div></div>
+    <div class="table-wrap"><table><thead><tr><th>会话</th><th>任务</th><th>采样率</th><th>校准</th><th>追踪丢失</th><th>判定</th></tr></thead>
+    <tbody>
+      <tr><td class="score-cell">P-0024</td><td>RJA 三线索</td><td>94.2%</td><td>优</td><td>2 段</td><td><span class="status-tag status-low">合格</span></td></tr>
+      <tr><td class="score-cell">P-0019</td><td>自由观看</td><td>96.8%</td><td>优</td><td>1 段</td><td><span class="status-tag status-low">合格</span></td></tr>
+      <tr><td class="score-cell">P-0017</td><td>RJA 三线索</td><td>89.5%</td><td>良</td><td>5 段</td><td><span class="status-tag status-watch">可接受</span></td></tr>
+      <tr><td class="score-cell">P-0015</td><td>自由观看</td><td>71.3%</td><td>差</td><td>18 段</td><td><span class="status-tag status-risk">待重采</span></td></tr>
+      <tr><td class="score-cell">P-0012</td><td>RJA 三线索</td><td>66.8%</td><td>差</td><td>24 段</td><td><span class="status-tag status-risk">待重采</span></td></tr>
+    </tbody></table></div>
+  </div>`;
+  $('#qualityBody').innerHTML=body;
+  openPage('page-quality',[topCrumbs.collect,{txt:'数据质量',act:'showTop(\'collect\')'}],'数据质量看板','collect',{type:'quality'});
+  requestAnimationFrame(()=>{
+    if(!window.Chart)return;
+    const cv=$('#calChart');if(!cv)return;
+    new Chart(cv,{type:'line',
+      data:{labels:['07-22','07-23','07-24','07-25','07-26','07-27','07-28'],datasets:[{label:'平均校准精度',data:[91,88,93,90,86,92,94],borderColor:'#1F7A8C',backgroundColor:'rgba(31,122,140,.12)',fill:true,tension:.4,pointRadius:3,borderWidth:2.5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{min:70,max:100,grid:{color:'#EEF3F5'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:10}}}}}});
+  });
+}
+
+/* ===== NEW CASE ===== */
+function showNewCase(){
+  const body=`
+  <div class="card reveal">
+    <div class="section-head"><h2>新建病案</h2><div class="chip">带 <span class="req">*</span> 为必填</div></div>
+    <div class="form-grid">
+      <div class="field"><label>患儿姓名 <span class="req">*</span></label><input placeholder="请输入姓名" /><div class="hint">仅用于院内识别，导出时自动脱敏</div></div>
+      <div class="field"><label>病案编号 <span class="req">*</span></label><input value="P-0025" readonly /><div class="hint">系统自动生成</div></div>
+      <div class="field"><label>性别</label><select><option>男</option><option>女</option></select></div>
+      <div class="field"><label>出生日期</label><input placeholder="如 2022-03-15" /></div>
+      <div class="field"><label>监护人联系电话</label><input placeholder="用于随访提醒" /></div>
+      <div class="field"><label>来源科室</label><select><option>儿童保健科</option><option>儿康科</option><option>儿科门诊</option><option>其他</option></select></div>
+      <div class="field"><label>M-CHAT 初筛</label><select><option>低风险</option><option>中风险</option><option>高风险</option></select></div>
+      <div class="field"><label>CARS 评分</label><input placeholder="0-60" type="number" /></div>
+      <div class="field" style="grid-column:1/-1"><label>临床备注</label><textarea rows="3" placeholder="主诉、既往史、家庭情况等"></textarea></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="goBack()">取消</button>
+      <button class="btn btn-primary" onclick="saveNewCase()">保存病案</button>
+    </div>
+  </div>`;
+  $('#newcaseBody').innerHTML=body;
+  openPage('page-newcase',[topCrumbs.cases,{txt:'新建病案',act:'showTop(\'cases\')'}],'新建病案','cases',{type:'newcase'});
+}
+function saveNewCase(){alert('Demo：病案已保存（演示）。正式版将写入数据库并跳转病案详情。');showTop('cases');}
+
+/* ===== MODEL REPORT ===== */
+function showModel(){
+  const body=`
+  <div class="card reveal">
+    <div class="section-head"><h2>模型性能报告</h2><div class="chip">模型 v2.1 · LASSO + RF</div><div class="spacer"></div><button class="btn btn-ghost btn-sm">导出评估报告</button></div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="k">AUC</div><div class="v info">0.87</div><div class="s">95%CI 0.82–0.92</div></div>
+      <div class="kpi"><div class="k">灵敏度</div><div class="v ok">84.2%</div><div class="s">高风险检出</div></div>
+      <div class="kpi"><div class="k">特异度</div><div class="v ok">81.5%</div><div class="s">低风险排除</div></div>
+      <div class="kpi"><div class="k">F1</div><div class="v">0.78</div><div class="s">综合指标</div></div>
+    </div>
+  </div>
+  <div class="grid grid-2 stagger">
+    <div class="card reveal">
+      <div class="section-head"><h2>ROC 曲线</h2><div class="chip">验证集 n=96</div></div>
+      <div class="chart-box"><canvas id="rocChart"></canvas></div>
+    </div>
+    <div class="card reveal">
+      <div class="section-head"><h2>混淆矩阵</h2><div class="chip">阈值 0.5</div></div>
+      <div class="conf-grid">
+        <div class="conf-cell" style="background:#E7F6F0;color:#1E7A5E"><div class="c-num">41</div><div class="c-lbl">真阳性 · 高风险正确检出</div></div>
+        <div class="conf-cell" style="background:#FDEBEC;color:#B0503F"><div class="c-num">8</div><div class="c-lbl">假阴性 · 漏检</div></div>
+        <div class="conf-cell" style="background:#FDEBEC;color:#B0503F"><div class="c-num">9</div><div class="c-lbl">假阳性 · 误报</div></div>
+        <div class="conf-cell" style="background:#E7F6F0;color:#1E7A5E"><div class="c-num">38</div><div class="c-lbl">真阴性 · 低风险正确排除</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="grid grid-2 stagger">
+    <div class="card reveal">
+      <div class="section-head"><h2>特征重要性</h2><div class="chip">SHAP</div></div>
+      <div class="chart-box tall"><canvas id="shapChart"></canvas></div>
+    </div>
+    <div class="card reveal">
+      <div class="section-head"><h2>模型说明</h2></div>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">算法</div><div class="v">LASSO 特征筛选 + 随机森林</div></div>
+        <div class="info-item"><div class="k">训练样本</div><div class="v">孤独症 50 / 脑瘫 30 / 典型 40</div></div>
+        <div class="info-item"><div class="k">验证方式</div><div class="v">5 折交叉验证</div></div>
+        <div class="info-item"><div class="k">部署形态</div><div class="v">本地轻量模型 · 无 GPU 依赖</div></div>
+        <div class="info-item"><div class="k">输入特征</div><div class="v">TFF / 注视占比 / RJA率 / GPI 等</div></div>
+        <div class="info-item"><div class="k">输出</div><div class="v">0–100 风险分 + 风险等级</div></div>
+      </div>
+    </div>
+  </div>`;
+  $('#modelBody').innerHTML=body;
+  openPage('page-modelreport',[topCrumbs.report,{txt:'模型性能',act:'showTop(\'report\')'}],'模型性能报告','report',{type:'model'});
+  requestAnimationFrame(()=>{
+    if(!window.Chart)return;
+    const roc=$('#rocChart');
+    if(roc)new Chart(roc,{type:'line',
+      data:{labels:['0.0','0.1','0.2','0.3','0.4','0.5','0.6','0.7','0.8','0.9','1.0'],datasets:[
+        {label:'模型 (AUC=0.87)',data:[0,.05,.14,.28,.45,.62,.75,.86,.93,.97,1],borderColor:'#1F7A8C',backgroundColor:'rgba(31,122,140,.1)',fill:true,tension:.3,borderWidth:2.5,pointRadius:0},
+        {label:'随机猜测',data:[0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1],borderColor:'#C9D9DD',borderDash:[5,4],borderWidth:1.5,pointRadius:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11,family:'PingFang SC'},usePointStyle:true,padding:14}}},scales:{x:{title:{display:true,text:'1 - 特异度',font:{size:11}},grid:{display:false},ticks:{font:{size:10}}},y:{title:{display:true,text:'灵敏度',font:{size:11}},beginAtZero:true,grid:{color:'#EEF3F5'},ticks:{font:{size:10}}}}}});
+    const sh=$('#shapChart');
+    if(sh)new Chart(sh,{type:'bar',
+      data:{labels:['TFF','目标区注视占比','RJA 正确率','眼睛区域占比','GPI','注意转换'],datasets:[{label:'SHAP 平均 |贡献|',data:[0.32,0.24,0.18,0.12,0.09,0.05],backgroundColor:['#1F7A8C','#2FA88A','#F5A65B','#D9685C','#8A9FB8','#C9D9DD'],borderRadius:6,barPercentage:.6}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,grid:{color:'#EEF3F5'},ticks:{font:{size:10}}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
+  });
+}
+
+/* ===== INTERVENTION PLAN ===== */
+function showIntervPlan(){
+  const weeks=[['W1','基线评估','07/15','done'],['W2-W3','建立训练习惯','07/22','done'],['W4','眼神跟随启动','08/05','done'],['W5-W7','强化阶段','08/12','cur'],['W8','中期复测','09/02',''],['W9-W11','融合巩固','09/09',''],['W12','终期复测','09/30','']];
+  const body=`
+  <div class="card reveal">
+    <div class="section-head"><h2>12 周干预方案 · 眼神跟随训练</h2><div class="chip">P-0024 · Ming Yang</div><div class="spacer"></div><button class="btn btn-accent btn-sm">生成家庭任务包</button></div>
+    <div class="phase-strip">
+      ${weeks.map(w=>`<div class="phase ${w[3]}"><div class="p-n">${w[0]}</div><div class="p-t">${w[1]}</div><div class="p-d">${w[2]}</div></div>`).join('')}
+    </div>
+  </div>
+  <div class="grid grid-2 stagger">
+    <div class="card reveal">
+      <div class="section-head"><h2>本周任务</h2><div class="chip">W5 · 强化阶段</div></div>
+      <div class="task-check done" onclick="this.classList.toggle('done')"><div class="cb">✓</div><div class="t-info"><div class="t-name">眼神跟随 · 手势线索</div><div class="t-meta">周一 · 15 min · 目标正确率 ≥50%</div></div><span class="status-tag status-active">完成</span></div>
+      <div class="task-check done" onclick="this.classList.toggle('done')"><div class="cb">✓</div><div class="t-info"><div class="t-name">自由观看 · 人脸偏好</div><div class="t-meta">周二 · 10 min</div></div><span class="status-tag status-active">完成</span></div>
+      <div class="task-check" onclick="this.classList.toggle('done')"><div class="cb">✓</div><div class="t-info"><div class="t-name">亲子共同注意游戏</div><div class="t-meta">周三 · 20 min</div></div><span class="status-tag status-watch">待完成</span></div>
+      <div class="task-check" onclick="this.classList.toggle('done')"><div class="cb">✓</div><div class="t-info"><div class="t-name">融合课堂反馈表</div><div class="t-meta">周四 · 教师填写</div></div><span class="status-tag status-watch">待完成</span></div>
+    </div>
+    <div class="card reveal">
+      <div class="section-head"><h2>干预里程碑</h2><div class="chip">P-0024 · 12周计划</div></div>
+      <div class="timeline">
+        <div class="tl-item done"><div class="tl-date">W1 · 07/15</div><div class="tl-title">基线眼动评估 · TFF 438ms</div></div>
+        <div class="tl-item done"><div class="tl-date">W4 · 08/05</div><div class="tl-title">眼神跟随训练启动 · 正确率 35%</div></div>
+        <div class="tl-item cur"><div class="tl-date">W8 · 09/02</div><div class="tl-title">中期复测 · 评估改善</div></div>
+        <div class="tl-item"><div class="tl-date">W12 · 09/30</div><div class="tl-title">终期复测 · 生成报告</div></div>
+      </div>
+      <div style="margin-top:14px" class="section-head"><h2 style="font-size:14px">效果追踪</h2><div class="chip">TFF 趋势</div></div>
+      <div class="chart-box sm"><canvas id="ivChart"></canvas></div>
+    </div>
+  </div>`;
+  $('#intervPlanBody').innerHTML=body;
+  openPage('page-intervplan',[topCrumbs.intervention,{txt:'12周方案',act:'showTop(\'intervention\')'}],'干预方案详情','intervention',{type:'intervplan'});
+  requestAnimationFrame(()=>{
+    if(!window.Chart)return;
+    const cv=$('#ivChart');if(!cv)return;
+    new Chart(cv,{type:'line',
+      data:{labels:['基线','W4','W8(预计)','W12(预计)'],datasets:[{label:'TFF (ms)',data:[438,398,352,312],borderColor:'#D9685C',backgroundColor:'rgba(217,104,92,.12)',fill:true,tension:.4,pointRadius:4,borderWidth:2.5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:false,grid:{color:'#EEF3F5'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:11}}}}}});
+  });
+}
+
+/* ===== KINDERGARTEN ===== */
+function showKindy(){
+  const kindies=[
+    {name:'南京市第一幼儿园',tag:'合作园 · 3年',ic:'🏫',role:'2 名幼儿在案 · 每周2次融合课',kids:2,rate:'86%'},
+    {name:'南师附幼',tag:'合作园 · 2年',ic:'🏫',role:'1 名幼儿在案 · 每周2次融合课',kids:1,rate:'92%'},
+    {name:'栖霞区实验幼儿园',tag:'合作园 · 1年',ic:'🏫',role:'3 名幼儿在案 · 每周3次融合课',kids:3,rate:'74%'},
+    {name:'鼓楼幼儿园',tag:'合作园 · 1年',ic:'🏫',role:'1 名幼儿在案 · 每周1次融合课',kids:1,rate:'88%'},
+    {name:'江宁示范幼儿园',tag:'新对接 · 洽谈中',ic:'🤝',role:'0 名幼儿在案 · 待签约',kids:0,rate:'—'},
+    {name:'玄武区紫金山幼儿园',tag:'新对接 · 洽谈中',ic:'🤝',role:'0 名幼儿在案 · 待签约',kids:0,rate:'—'},
+  ];
+  const body=`
+  <div class="card reveal">
+    <div class="section-head"><h2>幼儿园对接管理</h2><div class="chip">8 家合作 · 2 家洽谈中</div><div class="spacer"></div><button class="btn btn-primary">新增对接</button></div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="k">合作园所</div><div class="v info">8</div><div class="s">签署合作协议</div></div>
+      <div class="kpi"><div class="k">在案幼儿</div><div class="v">7</div><div class="s">每周规律上课</div></div>
+      <div class="kpi"><div class="k">本周反馈率</div><div class="v ok">85%</div><div class="s">课堂反馈表</div></div>
+      <div class="kpi"><div class="k">待跟进</div><div class="v bad">2</div><div class="s">反馈缺失 &gt;3 天</div></div>
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>合作园所</h2><div class="sub">点击园所查看对接详情</div></div>
+    <div class="kindy-grid">
+      ${kindies.map(k=>`
+      <div class="kindy-card">
+        <div class="kc-head"><div class="kc-ic">${k.ic}</div><div><div class="kc-name">${k.name}</div><div class="kc-tag">${k.tag}</div></div></div>
+        <div class="kc-role">${k.role}</div>
+        <div class="kc-stat"><span>在案 ${k.kids} 人</span><span>反馈率 ${k.rate}</span></div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>本周课堂反馈</h2><div class="chip">医教联动</div></div>
+    <div class="table-wrap"><table><thead><tr><th>日期</th><th>园所</th><th>幼儿</th><th>课堂任务</th><th>参与度</th><th>反馈</th><th>状态</th></tr></thead>
+    <tbody>
+      <tr><td>07-28</td><td>南京市第一幼儿园</td><td>P-0024</td><td>共同注意游戏</td><td>4/5</td><td>眼神跟随有进步</td><td><span class="status-tag status-active">已反馈</span></td></tr>
+      <tr><td>07-28</td><td>南师附幼</td><td>P-0020</td><td>轮流游戏</td><td>5/5</td><td>主动发起增多</td><td><span class="status-tag status-active">已反馈</span></td></tr>
+      <tr><td>07-27</td><td>栖霞区实验园</td><td>P-0019</td><td>自由观看</td><td>3/5</td><td>注意力待提高</td><td><span class="status-tag status-watch">待确认</span></td></tr>
+      <tr><td>07-26</td><td>鼓楼幼儿园</td><td>P-0021</td><td>眼神跟随</td><td>—</td><td>教师未提交</td><td><span class="status-tag status-risk">缺反馈</span></td></tr>
+    </tbody></table></div>
+  </div>`;
+  $('#kindyBody').innerHTML=body;
+  openPage('page-kindergarten',[topCrumbs.intervention,{txt:'幼儿园对接',act:'showTop(\'intervention\')'}],'幼儿园对接管理','intervention',{type:'kindy'});
+}
+
+/* ===== DEVICE MGMT ===== */
+function showDeviceMgr(){
+  const body=`
+  <div class="card reveal">
+    <div class="section-head"><h2>眼动仪设备</h2><div class="chip">采集室 · 1 号位</div></div>
+    <div class="info-grid">
+      <div class="info-item"><div class="k">设备型号</div><div class="v">Tobii Pro Fusion</div></div>
+      <div class="info-item"><div class="k">序列号</div><div class="v">TB-2024-08712</div></div>
+      <div class="info-item"><div class="k">采样率</div><div class="v">60 Hz</div></div>
+      <div class="info-item"><div class="k">固件版本</div><div class="v">1.4.2</div></div>
+      <div class="info-item"><div class="k">连接状态</div><div class="v"><span class="status-tag status-active">已连接</span></div></div>
+      <div class="info-item"><div class="k">最近校准</div><div class="v">今天 09:20 · 通过</div></div>
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>连接设备</h2><div class="chip">可扩展多台</div></div>
+    <div class="set-row"><div class="s-info"><div class="s-name">Tobii Pro Fusion · 采集室 1</div><div class="s-desc">IP 192.168.1.24 · 已授权</div></div><span class="status-tag status-active">在线</span></div>
+    <div class="set-row"><div class="s-info"><div class="s-name">Tobii Pro Spark · 备用</div><div class="s-desc">IP 192.168.1.31 · 待校准</div></div><span class="status-tag status-watch">待机</span></div>
+    <div class="set-row"><div class="s-info"><div class="s-name">Tobii Pro Glasses 3</div><div class="s-desc">未连接</div></div><span class="status-tag status-low">离线</span></div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>快捷操作</h2></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary">运行自检</button>
+      <button class="btn btn-ghost">重新校准</button>
+      <button class="btn btn-ghost">导出设备日志</button>
+    </div>
+  </div>`;
+  $('#deviceBody').innerHTML=body;
+  openPage('page-devicemgr',[topCrumbs.settings,{txt:'设备管理',act:'showTop(\'settings\')'}],'设备管理','settings',{type:'device'});
+}
+
+/* ===== DATA MGMT ===== */
+function showDataMgr(){
+  const body=`
+  <div class="card reveal">
+    <div class="section-head"><h2>数据与权限</h2><div class="chip">本地脱敏 · 加密存储</div><div class="spacer"></div><button class="btn btn-ghost btn-sm">导出审计日志</button></div>
+    <div class="info-grid">
+      <div class="info-item"><div class="k">存储位置</div><div class="v">本地 · 加密卷</div></div>
+      <div class="info-item"><div class="k">加密方式</div><div class="v">AES-256</div></div>
+      <div class="info-item"><div class="k">数据量</div><div class="v">24 例 · 3.8 GB</div></div>
+      <div class="info-item"><div class="k">自动备份</div><div class="v">每周日 03:00</div></div>
+      <div class="info-item"><div class="k">脱敏规则</div><div class="v">姓名 → 编号 · 电话隐藏</div></div>
+      <div class="info-item"><div class="k">保留策略</div><div class="v">研究期 3 年</div></div>
+    </div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>权限与开关</h2></div>
+    <div class="set-row"><div class="s-info"><div class="s-name">自动脱敏导出</div><div class="s-desc">导出时自动将姓名替换为编号</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>
+    <div class="set-row"><div class="s-info"><div class="s-name">AI 辅助标注</div><div class="s-desc">眼动指标自动预标注，医师确认</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>
+    <div class="set-row"><div class="s-info"><div class="s-name">干预任务同步家庭端</div><div class="s-desc">将本周任务推送至家庭小程序</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>
+    <div class="set-row"><div class="s-info"><div class="s-name">园长查看权限</div><div class="s-desc">合作园所教师仅可见本园在案患儿</div></div><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+  </div>
+  <div class="card reveal">
+    <div class="section-head"><h2>访问审计</h2><div class="chip">最近 5 条</div></div>
+    <div class="table-wrap"><table><thead><tr><th>时间</th><th>操作者</th><th>操作</th><th>对象</th></tr></thead>
+    <tbody>
+      <tr><td>07-28 10:24</td><td>陈医生</td><td>上传会话数据</td><td>P-0024</td></tr>
+      <tr><td>07-28 09:12</td><td>陈医生</td><td>查看报告</td><td>P-0019</td></tr>
+      <tr><td>07-27 16:40</td><td>治疗师·王</td><td>更新干预任务</td><td>P-0020</td></tr>
+      <tr><td>07-27 11:05</td><td>陈医生</td><td>导出原始数据</td><td>P-0017</td></tr>
+      <tr><td>07-26 15:30</td><td>护士·李</td><td>新建病案</td><td>P-0025</td></tr>
+    </tbody></table></div>
+  </div>`;
+  $('#dataBody').innerHTML=body;
+  openPage('page-datamgr',[topCrumbs.settings,{txt:'数据与权限',act:'showTop(\'settings\')'}],'数据与权限','settings',{type:'datamgr'});
+}
+
+/* ===== REVEAL ===== */
+const io=new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting){en.target.classList.add('visible');io.unobserve(en.target);}}),{threshold:.12});
+function initReveals(){$$('.reveal:not(.visible)').forEach(el=>io.observe(el));}
+
+/* ===== SIDEBAR COLLAPSE (desktop) ===== */
+$('#collapseBtn').addEventListener('click',()=>{collapsed=!collapsed;syncSidebar();});
+
+/* ===== COUNTERS ===== */
+function animateCount(el,target){
+  target=parseFloat(target);const dur=1100,start=performance.now();
+  const decimals=(String(target).split('.')[1]||'').length;
+  function tick(t){const p=Math.min((t-start)/dur,1),e=1-Math.pow(1-p,3);el.textContent=fmt(target*e,decimals);if(p<1)requestAnimationFrame(tick);}
+  requestAnimationFrame(tick);
+}
+$$('[data-count]').forEach(el=>animateCount(el,el.dataset.count));
+
+/* ===== EYE STAGE ===== */
+(function(){
+  const stage=$('#eyeStage');if(!stage)return;
+  const dot=$('#focusDot'),hint=$('#eyeHint'),ringArc=$('#ringArc'),ringTxt=$('#ringTxt');
+  let px=.5,py=.35,tx=.8,ty=.5;
+  setInterval(()=>{if(Math.random()<.12){tx=Math.random()*.7+.2;ty=Math.random()*.6+.2;}},1600);
+  (function frame(){px+=(tx-px)*.045;py+=(ty-py)*.045;dot.style.left=(px*100)+'%';dot.style.top=(py*100)+'%';requestAnimationFrame(frame);})();
+  let trial=6;
+  setInterval(()=>{trial=trial<12?trial+1:1;const pr=Math.round((trial/12)*100);hint.textContent='▶ 校准完成 · 试次 '+trial+' / 12';ringTxt.textContent=pr+'%';ringArc.style.strokeDashoffset=151*(1-pr/100);if(trial===12)hint.textContent='✅ 任务完成 · 数据已保存';},3600);
+})();
+
+/* ===== LIVE PARAM JITTER ===== */
+const pEls={p1:$('#p1'),p2:$('#p2'),p3:$('#p3'),p4:$('#p4')};
+const pBase={p1:[312,150],p2:[41.7,120],p3:[18.3,120],p4:[22.1,120]};
+setInterval(()=>{Object.entries(pEls).forEach(([k,el])=>{if(!el)return;const[base,range]=pBase[k];el.textContent=fmt(base+(Math.random()-.5)*range*.12,k==='p1'?0:1);});},2400);
+
+/* ===== CUE PILLS ===== */
+$$('.cue-pill').forEach(p=>p.addEventListener('click',()=>{$$('.cue-pill').forEach(x=>x.classList.remove('active'));p.classList.add('active');}));
+
+/* ===== NEW CASE ===== */
+$('#btnNewCase')?.addEventListener('click',()=>{showNewCase();});
+
+/* ===== SCANPATH (hero canvases) ===== */
+function initScan(cv){
+  if(!cv)return;const ctx=cv.getContext('2d');let W,H,parts=[];
+  function size(){W=cv.width=cv.offsetWidth;H=cv.height=cv.offsetHeight;}
+  size();addEventListener('resize',size);
+  const pt={x:0,y:0};let t=0;
+  function draw(){
+    ctx.clearRect(0,0,W,H);t+=.008;
+    const cx=W*.45+Math.sin(t)*W*.12,cy=H*.5+Math.cos(t*1.3)*H*.14;
+    pt.x+=(cx-pt.x)*.02;pt.y+=(cy-pt.y)*.02;
+    parts.push({x:pt.x,y:pt.y});if(parts.length>90)parts.shift();
+    ctx.strokeStyle='rgba(255,214,174,.4)';ctx.lineWidth=1.6;ctx.beginPath();
+    parts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();
+    ctx.beginPath();ctx.fillStyle='rgba(245,166,91,.18)';ctx.arc(pt.x,pt.y,16,0,7);ctx.fill();
+    ctx.beginPath();ctx.fillStyle='#F5A65B';ctx.arc(pt.x,pt.y,4.5,0,7);ctx.fill();
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+initScan($('#heroScan'));initScan($('#heroScan2'));
+
+/* ===== RESPONSIVE ===== */
+function onResize(){
+  const w=window.innerWidth;const wasMobile=isMobile;isMobile=w<=768;
+  if(wasMobile!==isMobile){mobileOpen=false;collapsed=false;}
+  syncSidebar();
+}
+addEventListener('resize',onResize);
+
+/* ===== SEARCH ===== */
+$('#globalSearch').addEventListener('input',e=>{
+  const q=e.target.value.trim().toLowerCase();
+  const rows=caseData.filter(c=>!q||c.name.toLowerCase().includes(q)||c.id.toLowerCase().includes(q));
+  $('#caseTable').innerHTML=rows.map(c=>{
+    const[lb,cls]=riskLbl[c.risk];
+    return `<tr class="clickable" onclick="showCaseDetail('${c.id}')"><td><div class="patient"><div class="p-avatar" style="background:${colors[c.risk]}">${esc(c.name[0])}</div><div><div class="p-name">${esc(c.name)}</div><div class="p-meta">${c.id}</div></div></div></td><td>${c.sex} / ${c.age}</td><td class="score-cell" style="color:${colors[c.risk]}">${c.score}<span class="mini">/100</span></td><td><span class="status-tag ${cls}">${lb}</span></td><td class="score-cell">${c.rja}</td><td>${c.date}</td><td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showCaseDetail('${c.id}')">查看</button></td></tr>`;
+  }).join('');
+});
+
+/* ===== LOGIN (Demo：默认免登录进入) ===== */
+function showLogin(){
+  $('#loginOverlay').classList.add('show');
+}
+function doLogin(){
+  $('#loginOverlay').classList.remove('show');
+  toast('已登录 · 演示身份：陈医生（儿康科）','ok');
+  showTop('collect');
+}
+function logout(){
+  showLogin();
+  toast('已退出登录 · Demo 模式默认跳过登录');
+}
+$('#profileFoot').addEventListener('click',()=>showTop('profile'));
+
+/* ===== TOAST ===== */
+let toastTimer=null;
+function toast(msg,type){
+  const t=$('#toast');
+  t.textContent=msg;
+  t.className='toast'+(type==='ok'?' ok show':' show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2400);
+}
+
+/* ===== PROFILE ===== */
+let profileTab='account';
+function renderProfile(){
+  $('#profileTabs').innerHTML='';
+  ['account','security','notify','work'].forEach(k=>{
+    const el=document.createElement('div');
+    el.className='profile-tab'+(k===profileTab?' active':'');
+    el.dataset.ptab=k;
+    el.textContent={account:'账号资料',security:'账号安全',notify:'消息通知',work:'我的工作台'}[k];
+    el.onclick=()=>{profileTab=k;renderProfile();};
+    $('#profileTabs').appendChild(el);
+  });
+  const bodies={
+    account:`
+      <div class="section-head" style="margin-top:6px"><h2 style="font-size:14px">基本信息</h2></div>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">姓名</div><div class="v">陈医生</div></div>
+        <div class="info-item"><div class="k">职称</div><div class="v">主治医师</div></div>
+        <div class="info-item"><div class="k">科室</div><div class="v">儿童保健科</div></div>
+        <div class="info-item"><div class="k">所属机构</div><div class="v">南京医科大学附属</div></div>
+        <div class="info-item"><div class="k">邮箱</div><div class="v">chen.doctor@njmu.edu.cn</div></div>
+        <div class="info-item"><div class="k">工号</div><div class="v">EMP-1024</div></div>
+      </div>
+      <div class="section-head" style="margin-top:20px"><h2 style="font-size:14px">角色与权限</h2></div>
+      <div class="info-grid">
+        <div class="info-item"><div class="k">平台角色</div><div class="v">筛查医生 · 管理员</div></div>
+        <div class="info-item"><div class="k">数据权限</div><div class="v">全部病案 · 可导出</div></div>
+        <div class="info-item"><div class="k">AI 模型</div><div class="v">可查看 · 可复测</div></div>
+        <div class="info-item"><div class="k">干预协作</div><div class="v">方案制定 · 家庭端</div></div>
+      </div>`,
+    security:`
+      <div class="section-head" style="margin-top:6px"><h2 style="font-size:14px">账号安全</h2></div>
+      <div class="set-row"><div class="s-info"><div class="s-name">登录密码</div><div class="s-desc">上次修改 · 2026-05-12</div></div><button class="btn btn-ghost btn-sm">修改密码</button></div>
+      <div class="set-row"><div class="s-info"><div class="s-name">手机号绑定</div><div class="s-desc">138****6621 · 用于登录与验证</div></div><button class="btn btn-ghost btn-sm">更换</button></div>
+      <div class="set-row"><div class="s-info"><div class="s-name">登录设备管理</div><div class="s-desc">3 台设备在线 · 最近登录 采集室终端</div></div><button class="btn btn-ghost btn-sm">管理</button></div>
+      <div class="set-row"><div class="s-info"><div class="s-name">双重验证</div><div class="s-desc">登录时短信验证码校验</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>`,
+    notify:`
+      <div class="section-head" style="margin-top:6px"><h2 style="font-size:14px">消息通知偏好</h2></div>
+      <div class="set-row"><div class="s-info"><div class="s-name">新病案提醒</div><div class="s-desc">新患儿建档时通知我</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="set-row"><div class="s-info"><div class="s-name">高风险预警</div><div class="s-desc">AI 判读高风险立即提醒</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="set-row"><div class="s-info"><div class="s-name">干预打卡周报</div><div class="s-desc">每周日推送家庭训练完成情况</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="set-row"><div class="s-info"><div class="s-name">系统更新公告</div><div class="s-desc">版本更新与维护通知</div></div><div class="switch" onclick="this.classList.toggle('on')"></div></div>
+      <div class="set-row"><div class="s-info"><div class="s-name">未读消息角标</div><div class="s-desc">顶部铃铛显示未读红点</div></div><div class="switch on" onclick="this.classList.toggle('on')"></div></div>`,
+    work:`
+      <div class="section-head" style="margin-top:6px"><h2 style="font-size:14px">本周工作概览</h2></div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="k">待处理报告</div><div class="v warn">3</div><div class="s">需医师确认</div></div>
+        <div class="kpi"><div class="k">本周采集</div><div class="v">8</div><div class="s">+2 vs 上周</div></div>
+        <div class="kpi"><div class="k">在案干预</div><div class="v info">6</div><div class="s">每周跟进</div></div>
+        <div class="kpi"><div class="k">待跟进反馈</div><div class="v bad">2</div><div class="s">幼儿园缺反馈</div></div>
+      </div>
+      <div class="section-head" style="margin-top:20px"><h2 style="font-size:14px">最近动态</h2></div>
+      <div class="timeline">
+        <div class="tl-item done"><div class="tl-date">今天 10:24</div><div class="tl-title">上传会话数据 · P-0024 RJA 三线索</div></div>
+        <div class="tl-item done"><div class="tl-date">今天 09:12</div><div class="tl-title">查看报告 · P-0019 低风险</div></div>
+        <div class="tl-item done"><div class="tl-date">昨天 16:40</div><div class="tl-title">更新干预任务 · P-0020</div></div>
+        <div class="tl-item"><div class="tl-date">昨天 11:05</div><div class="tl-title">导出原始数据 · P-0017</div></div>
+      </div>`
+  };
+  $('#profileTabBody').innerHTML=`
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+      <button class="btn btn-ghost btn-sm" onclick="logout()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg> 退出登录</button>
+    </div>
+    ${bodies[profileTab]}`;
+}
+
+/* ===== LIBRARY ===== */
+const libRoot={
+  name:'资源库',
+  type:'folder',
+  children:[
+    {name:'筛查方案模板',type:'folder',children:[
+      {name:'RJA三线索眼动范式.md',type:'file'},
+      {name:'自由观看偏好范式.md',type:'file'},
+      {name:'五点校准SOP.docx',type:'file'},
+    ]},
+    {name:'干预训练素材',type:'folder',children:[
+      {name:'眼神跟随训练卡组',type:'folder',children:[
+        {name:'眼神跟随·Level1',type:'file'},
+        {name:'眼神跟随·Level2',type:'file'},
+      ]},
+      {name:'人脸刺激图片集',type:'file'},
+      {name:'几何图形刺激集',type:'file'},
+    ]},
+    {name:'文献与量表',type:'folder',children:[
+      {name:'ESCS量表条目.pdf',type:'file'},
+      {name:'CARS评分指南.pdf',type:'file'},
+      {name:'M-CHAT筛查表.pdf',type:'file'},
+      {name:'共同注意眼动综述.pdf',type:'file'},
+    ]},
+    {name:'培训与质控',type:'folder',children:[
+      {name:'采集员培训视频.mp4',type:'file'},
+      {name:'质控检查表.xlsx',type:'file'},
+    ]},
+    {name:'报告模板',type:'folder',children:[
+      {name:'AI筛查报告模板.docx',type:'file'},
+      {name:'干预周报模板.docx',type:'file'},
+    ]},
+  ]
+};
+let libPath=[libRoot];
+function getLibFolder(path){
+  return path[path.length-1];
+}
+function libCrumbPath(path){
+  return path.map(n=>n.name).join(' / ');
+}
+function renderLibrary(){
+  const cur=getLibFolder(libPath);
+  $('#libPathChip').textContent=libCrumbPath(libPath);
+  $('#libCrumbs').innerHTML=libPath.map((n,i)=>`
+    <span class="lib-crumb ${i===libPath.length-1?'here':''}" ${i<libPath.length-1?`onclick="libNavTo(${i})"`:''}>${esc(n.name)}</span>
+    ${i<libPath.length-1?'<span class="lib-sep">/</span>':''}`).join('');
+  const items=cur.children||[];
+  $('#libGrid').innerHTML=items.length?items.map((it,i)=>{
+    if(it.type==='folder'){
+      const cnt=countChildren(it);
+      return `<div class="lib-item folder" onclick="libOpen(${i})">
+        <button class="li-del" onclick="event.stopPropagation();libDelete(${i})" title="删除">✕</button>
+        <div class="li-ic">📁</div>
+        <div class="li-name">${esc(it.name)} <span class="li-count">${cnt}</span></div>
+        <div class="li-meta">文件夹</div>
+      </div>`;
+    }
+    return `<div class="lib-item file" onclick="libOpenFile(${i})">
+      <button class="li-del" onclick="event.stopPropagation();libDelete(${i})" title="删除">✕</button>
+      <div class="li-ic">📄</div>
+      <div class="li-name">${esc(it.name)}</div>
+      <div class="li-meta">文档</div>
+    </div>`;
+  }).join(''):'<div class="count-note" style="grid-column:1/-1;padding:20px;text-align:center;color:var(--ink-soft)">空文件夹 · 点击右上角"新建文件夹"添加</div>';
+  renderLibRecent();
+}
+function countChildren(node){
+  let n=0;
+  (node.children||[]).forEach(c=>{n+=c.type==='folder'?countChildren(c):1;});
+  return n;
+}
+function libNavTo(i){libPath=libPath.slice(0,i+1);renderLibrary();}
+function libOpen(i){
+  const item=getLibFolder(libPath).children[i];
+  if(item.type==='folder'){libPath.push(item);renderLibrary();}
+  else libOpenFile(i);
+}
+function libOpenFile(i){
+  const item=getLibFolder(libPath).children[i];
+  toast('预览：'+item.name,'ok');
+}
+function libDelete(i){
+  const cur=getLibFolder(libPath);
+  openLibConfirm(()=>{
+    cur.children.splice(i,1);
+    renderLibrary();
+    toast('已删除','ok');
+  },cur.children[i].name);
+}
+function libNewItem(type,name){
+  const cur=getLibFolder(libPath);
+  cur.children=cur.children||[];
+  cur.children.push({name:name||'未命名',type:type,children:type==='folder'?[]:undefined});
+  renderLibrary();
+  toast('已新建 '+(type==='folder'?'文件夹':'文档')+'：'+(name||'未命名'),'ok');
+}
+
+/* ===== LIB MODAL ===== */
+let libModalMode='folder';let libModalCb=null;
+function openLibModal(mode){
+  libModalMode=mode;
+  $('#modalTitle').textContent=mode==='folder'?'新建文件夹':'新建文档';
+  $('#modalDesc').textContent=mode==='folder'?'在当前目录下创建子文件夹':'在当前目录下创建空白文档';
+  $('#modalInput').value='';$('#modalInput').placeholder=mode==='folder'?'输入文件夹名称':'输入文档名称';
+  $('#modalMask').classList.add('show');
+  setTimeout(()=>$('#modalInput').focus(),80);
+}
+function openLibConfirm(cb,name){
+  libModalCb=cb;
+  $('#modalTitle').textContent='删除确认';
+  $('#modalDesc').textContent='确定删除「'+name+'」吗？此操作不可撤销。';
+  $('#modalInput').value='';$('#modalInput').placeholder='';
+  $('#modalInput').style.display='none';
+  $('#modalMask').classList.add('show');
+}
+function closeLibModal(){
+  $('#modalMask').classList.remove('show');
+  libModalCb=null;
+  $('#modalInput').style.display='';
+}
+function confirmLibModal(){
+  if(libModalCb){libModalCb();libModalCb=null;closeLibModal();return;}
+  const name=$('#modalInput').value.trim();
+  if(!name){toast('请输入名称');return;}
+  libNewItem(libModalMode,name);
+  closeLibModal();
+}
+$('#modalMask').addEventListener('click',e=>{if(e.target.id==='modalMask')closeLibModal();});
+function renderLibRecent(){
+  const recs=[
+    ['RJA三线索眼动范式.md','文档','筛查方案模板','今天 10:12'],
+    ['眼神跟随·Level1','文档','干预训练素材','今天 09:40'],
+    ['ESCS量表条目.pdf','文档','文献与量表','昨天 16:22'],
+    ['AI筛查报告模板.docx','文档','报告模板','昨天 11:05'],
+  ];
+  $('#libRecent').innerHTML=recs.map(r=>`<tr><td style="font-weight:600">${r[0]}</td><td><span class="status-tag status-active">${r[1]}</span></td><td>${r[2]}</td><td style="color:var(--ink-soft)">${r[3]}</td><td><button class="btn btn-ghost btn-sm">打开</button></td></tr>`).join('');
+}
+
+/* ===== BOOT ===== */
+syncSidebar();
+showTop('collect');
+</script>
+</body>
+</html>
