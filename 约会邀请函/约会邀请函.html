@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💌 想约你出来玩</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=ZCOOL+XiaoWei&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF1E2;
+    --card:#FFFBF0;
+    --ink:#46263A;
+    --ink-soft:#9A7B8B;
+    --rose:#F4627B;
+    --rose-deep:#DC3D5C;
+    --rose-light:#FFD9DF;
+    --butter:#FFC94D;
+    --mint:#9FD6C4;
+    --line:#F0D9C2;
+    --shadow:0 26px 60px -18px rgba(120,60,80,.38);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{height:100%}
+  body{
+    min-height:100%;
+    font-family:"ZCOOL XiaoWei","PingFang SC","Microsoft YaHei",serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 12% 16%, rgba(255,201,77,.20), transparent 40%),
+      radial-gradient(circle at 88% 84%, rgba(159,214,196,.30), transparent 42%),
+      radial-gradient(circle at 84% 12%, rgba(244,98,123,.15), transparent 38%),
+      linear-gradient(180deg,#FCF6EA 0%,#F6E7D4 100%);
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* floating hearts background */
+  .hearts{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .hearts span{
+    position:absolute;bottom:-12vh;display:block;
+    font-size:1.3rem;opacity:0;
+    animation:floatUp linear infinite;
+  }
+  @keyframes floatUp{
+    0%{transform:translateY(0) rotate(-8deg);opacity:0}
+    12%{opacity:.5}
+    82%{opacity:.3}
+    100%{transform:translateY(-118vh) rotate(16deg);opacity:0}
+  }
+
+  .stage{
+    position:relative;z-index:1;
+    min-height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    padding:34px 16px;
+  }
+  .stage[hidden]{display:none}
+
+  /* ============ 第一页 · 邀请函卡片 ============ */
+  .card{
+    position:relative;
+    width:min(440px,100%);
+    background:var(--card);
+    border-radius:26px;
+    border:1px solid rgba(240,217,194,.9);
+    box-shadow:var(--shadow);
+    padding:54px 34px 38px;
+    text-align:center;
+    outline:2px dashed rgba(244,98,123,.30);
+    outline-offset:-12px;
+    animation:cardIn .8s cubic-bezier(.16,1,.3,1) both;
+  }
+  @keyframes cardIn{from{opacity:0;transform:translateY(28px) scale(.95)}to{opacity:1;transform:none}}
+
+  .card__sticker{
+    position:absolute;top:-25px;left:50%;transform:translateX(-50%);
+    width:58px;height:58px;border-radius:50%;
+    background:#fff;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    font-size:29px;
+    box-shadow:0 10px 22px -8px rgba(120,60,80,.4);
+  }
+  .card__eyebrow{
+    font-size:13px;letter-spacing:.38em;color:var(--rose);
+    margin-bottom:8px;text-indent:.38em;
+  }
+  .card__title{
+    font-family:"ZCOOL KuaiLe","PingFang SC",sans-serif;
+    font-weight:400;
+    font-size:clamp(34px,7vw,44px);
+    color:var(--rose-deep);letter-spacing:.06em;
+  }
+  .card__title .dot{color:var(--butter)}
+  .card__script{
+    font-family:"Dancing Script",cursive;
+    font-size:16px;color:var(--ink-soft);margin-top:2px;
+  }
+  .card__seal{
+    width:54px;height:54px;margin:16px auto 4px;
+    border-radius:12px;transform:rotate(-8deg);
+    background:radial-gradient(circle at 32% 28%, #FF6B84, var(--rose-deep) 70%);
+    color:#fff;font-family:"ZCOOL KuaiLe",sans-serif;font-size:25px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.35), 0 8px 16px -6px rgba(220,61,92,.55);
+  }
+  .card__body{margin-top:14px;font-size:16.5px;line-height:1.95;color:var(--ink)}
+  .card__body .hl{color:var(--rose-deep);font-family:"ZCOOL KuaiLe",sans-serif;font-size:19px}
+  .card__question{
+    margin:18px auto 2px;
+    font-family:"ZCOOL KuaiLe",sans-serif;font-weight:400;
+    font-size:20px;line-height:1.6;
+  }
+  .card__actions{
+    margin-top:24px;min-height:58px;
+    display:flex;align-items:center;justify-content:center;gap:20px;
+    flex-wrap:wrap;
+  }
+  .btn{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-weight:400;
+    font-size:19px;letter-spacing:.1em;
+    padding:14px 32px;border-radius:999px;border:none;cursor:pointer;
+    transition:transform .15s ease, box-shadow .2s ease, left .2s ease, top .2s ease;
+  }
+  .btn:focus-visible{outline:3px solid var(--butter);outline-offset:3px}
+  .btn--yes{
+    background:linear-gradient(135deg,#FF6B84,var(--rose-deep));
+    color:#fff;box-shadow:0 12px 24px -10px rgba(220,61,92,.65);
+    animation:yesPulse 2.1s ease-in-out infinite;
+  }
+  @keyframes yesPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+  .btn--yes:hover{transform:translateY(-3px) scale(1.05);animation:none}
+  .btn--yes:active{transform:scale(.96)}
+  .btn--no{
+    background:#fff;color:var(--rose-deep);
+    border:2px solid var(--rose);
+    position:relative;z-index:5;
+  }
+  .btn--no.dodging{animation:dodge .22s ease}
+  @keyframes dodge{
+    0%{transform:scale(1) rotate(0)}
+    50%{transform:scale(1.12) rotate(-9deg)}
+    100%{transform:scale(1) rotate(0)}
+  }
+  .card__hint{margin-top:22px;font-size:13px;color:var(--ink-soft);letter-spacing:.08em}
+
+  /* 同意后的盖章 */
+  .stamp{
+    position:absolute;inset:0;border-radius:26px;
+    display:flex;align-items:center;justify-content:center;
+    z-index:10;pointer-events:none;opacity:0;
+  }
+  .stamp.show{animation:stampIn .55s cubic-bezier(.2,1.6,.4,1) both}
+  .stamp__inner{
+    border:4px solid var(--rose-deep);color:var(--rose-deep);
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:28px;
+    padding:10px 26px;border-radius:14px;transform:rotate(-12deg);
+    background:rgba(255,251,240,.88);
+    box-shadow:0 10px 24px -10px rgba(220,61,92,.6);
+  }
+  @keyframes stampIn{
+    0%{opacity:0;transform:scale(2.4) rotate(-20deg)}
+    60%{opacity:1;transform:scale(.94) rotate(-10deg)}
+    100%{opacity:1;transform:scale(1) rotate(-12deg)}
+  }
+
+  .stage--leave{animation:page1Out .55s ease both}
+  @keyframes page1Out{to{opacity:0;transform:scale(.93)}}
+
+  /* ============ 第二页 · 选择步骤 ============ */
+  .stage--done.enter{animation:page2In .65s cubic-bezier(.16,1,.3,1) both}
+  @keyframes page2In{from{opacity:0;transform:translateY(26px) scale(.96)}to{opacity:1;transform:none}}
+
+  .done-wrap{text-align:center;width:min(600px,100%)}
+  .done-head{margin-bottom:22px}
+  .done-head .emoji{font-size:44px;display:block;animation:bounce 1.6s ease-in-out infinite}
+  @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  .done-head h2{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-weight:400;
+    font-size:clamp(30px,6vw,40px);color:var(--rose-deep);margin-top:6px;
+  }
+  .done-head p{color:var(--ink-soft);font-size:15px;margin-top:4px;letter-spacing:.06em}
+
+  .ticket{
+    width:100%;background:#fff;
+    border-radius:20px;overflow:hidden;
+    box-shadow:var(--shadow);
+    border:1px solid var(--line);
+    text-align:left;
+  }
+
+  /* 进度小爱心 */
+  .prog{display:flex;justify-content:center;gap:12px;margin-bottom:6px;font-size:20px}
+  .prog .step-tag{font-size:12px;color:var(--ink-soft);letter-spacing:.1em;margin-top:2px}
+
+  .step{animation:stepIn .45s cubic-bezier(.16,1,.3,1) both}
+  @keyframes stepIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .ticket__body{padding:28px 28px 26px}
+  .step-emoji{font-size:38px;display:block;margin-bottom:6px}
+  .step h3{
+    font-family:"ZCOOL KuaiLe",sans-serif;font-weight:400;
+    font-size:24px;color:var(--ink);margin-bottom:2px;
+  }
+  .step-sub{font-size:13.5px;color:var(--ink-soft);letter-spacing:.06em;margin-bottom:8px}
+  .options{margin-top:10px}
+  .opt{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:14px 16px;margin-top:11px;
+    border:2px solid var(--rose-light);background:#fff;border-radius:16px;
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:17px;color:var(--ink);
+    cursor:pointer;letter-spacing:.04em;
+    transition:transform .15s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+  }
+  .opt:hover{
+    transform:translateY(-2px);border-color:var(--rose);
+    box-shadow:0 8px 18px -8px rgba(244,98,123,.45);background:#FFF6F7;
+  }
+  .opt:active{transform:scale(.96)}
+  .opt:focus-visible{outline:3px solid var(--butter);outline-offset:2px}
+  .opt--picked{border-color:var(--rose-deep);background:#FFEDF0}
+
+  /* 确认 / 最终券 */
+  .ticket__details{list-style:none;margin-top:16px;border-top:2px dashed var(--line)}
+  .row{
+    display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+    padding:12px 2px;border-bottom:2px dashed var(--line);
+    font-size:15px;line-height:1.55;
+  }
+  .row__k{color:var(--rose-deep);font-family:"ZCOOL KuaiLe",sans-serif;font-size:16px;white-space:nowrap}
+  .row__v{color:var(--ink);text-align:right}
+  .confirm-actions{margin-top:22px;text-align:center}
+
+  /* 最终约会券 */
+  .final{position:relative}
+  .ticket--final{display:flex;width:100%;background:#fff;border-radius:20px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--line);text-align:left}
+  .ticket--final.enter{animation:page2In .6s cubic-bezier(.16,1,.3,1) both}
+  .ticket__stub{
+    width:116px;flex:0 0 116px;
+    background:linear-gradient(165deg,#FF6B84,var(--rose-deep));
+    color:#fff;padding:26px 12px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    position:relative;
+    font-family:"ZCOOL KuaiLe",sans-serif;
+  }
+  .ticket__stub::before{content:'';position:absolute;right:0;top:0;bottom:0;border-left:2px dashed rgba(255,255,255,.55)}
+  .stub-emoji{font-size:34px}
+  .stub-title{font-size:14px;letter-spacing:.14em;text-align:center;line-height:1.35}
+  .stub-no{
+    font-family:"Dancing Script",cursive;font-weight:700;font-size:22px;
+    border:1.5px solid rgba(255,255,255,.7);border-radius:8px;
+    padding:1px 9px;transform:rotate(-6deg);
+  }
+  .stub-cut{position:absolute;right:-13px;top:50%;transform:translateY(-50%);width:26px;height:26px;border-radius:50%;background:var(--paper);display:flex;align-items:center;justify-content:center;font-size:13px}
+  .ticket--final .ticket__body{flex:1;padding:26px 28px 26px 30px}
+  .ticket__title{font-family:"ZCOOL KuaiLe",sans-serif;font-weight:400;font-size:26px;color:var(--ink)}
+  .ticket__title b{color:var(--rose-deep)}
+  .ticket__sub{margin-top:6px;font-size:14.5px;color:var(--ink-soft);line-height:1.7}
+  .final-stamp{
+    display:inline-block;margin-top:14px;
+    border:3px solid var(--rose-deep);color:var(--rose-deep);
+    font-family:"ZCOOL KuaiLe",sans-serif;font-size:20px;
+    padding:5px 18px;border-radius:10px;transform:rotate(-8deg);
+    background:rgba(255,251,240,.9);animation:stampIn .5s cubic-bezier(.2,1.6,.4,1) both;
+  }
+  .ticket__actions{margin-top:22px;text-align:center}
+  .ticket__ps{margin-top:16px;font-size:14px;color:var(--ink-soft);line-height:1.8;text-align:center}
+
+  /* 彩纸屑 */
+  .confetti{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden}
+  .confetti span{position:absolute;top:-5vh;display:block;animation:confettiFall linear forwards}
+  @keyframes confettiFall{to{transform:translateY(110vh) rotate(720deg);opacity:.85}}
+
+  @media (max-width:520px){
+    .ticket__stub{width:96px;flex-basis:96px}
+    .ticket--final .ticket__body{padding:22px 18px 22px 22px}
+    .row{flex-direction:column;gap:4px}
+    .row__v{text-align:left}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.001s !important;animation-iteration-count:1 !important;transition-duration:.001s !important}
+    .hearts span{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="hearts" id="hearts" aria-hidden="true"></div>
+
+<!-- ================= 第一页：邀请函 ================= -->
+<main class="stage" id="page1">
+  <section class="card" id="card">
+    <div class="card__sticker">💌</div>
+    <p class="card__eyebrow">给你的邀请函</p>
+    <h1 class="card__title">想约你出来玩<span class="dot">.</span></h1>
+    <p class="card__script">a little date, just for you</p>
+    <div class="card__seal"><span>约</span></div>
+    <p class="card__body">
+      亲爱的 <span class="hl">小姐姐</span>：<br>
+      这个周末风和日丽，奶茶很甜，<br>
+      就差一个你啦～所以……
+    </p>
+    <p class="card__question">你愿意，跟我一起去约会吗？</p>
+    <div class="card__actions" id="actions">
+      <button class="btn btn--yes" id="btnYes">好呀好呀！</button>
+      <button class="btn btn--no"  id="btnNo">才不要呢</button>
+    </div>
+    <p class="card__hint" id="hint">（偷偷说：另一个按钮是点不到的哦）</p>
+    <div class="stamp" id="stamp" aria-hidden="true">
+      <div class="stamp__inner">已同意 ❤</div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= 第二页：选时间 → 选吃的 → 确认 ================= -->
+<main class="stage stage--done" id="page2" hidden>
+  <div class="done-wrap">
+    <div class="done-head">
+      <span class="emoji">🎉</span>
+      <h2>太好啦！你答应啦！</h2>
+      <p>别急，再挑两件小事，马上就定好 😉</p>
+    </div>
+
+    <!-- 步骤流 -->
+    <section class="ticket" id="flow">
+      <div class="ticket__body">
+        <div class="prog" id="prog" aria-hidden="true">
+          <span class="prog-heart">💗</span><span class="prog-heart">🤍</span><span class="prog-heart">🤍</span>
+        </div>
+
+        <!-- 步骤1：时间 -->
+        <div class="step" data-step="time">
+          <span class="step-emoji">🕑</span>
+          <h3>什么时候约会呀？</h3>
+          <p class="step-sub">挑一个，券上自动盖章哦</p>
+          <div class="options">
+            <button class="opt" data-time="现在！立刻马上">就现在！立刻马上 🏃</button>
+            <button class="opt" data-time="这个周六 14:00">这个周六下午</button>
+            <button class="opt" data-time="下个周末">下个周末</button>
+            <button class="opt" data-time="你来定～我随时有空">你来定，都听你的</button>
+          </div>
+        </div>
+
+        <!-- 步骤2：吃的 -->
+        <div class="step" data-step="food" hidden>
+          <span class="step-emoji">🍜</span>
+          <h3>那……吃什么呀？</h3>
+          <p class="step-sub">选一个，不许反悔</p>
+          <div class="options">
+            <button class="opt" data-food="火锅 🍲 热气腾腾">火锅！热气腾腾</button>
+            <button class="opt" data-food="烤肉 🍖">烤肉</button>
+            <button class="opt" data-food="奶茶 + 甜品 🧋">奶茶 + 甜品</button>
+            <button class="opt" data-food="你来点，我都陪你去">随便，你选</button>
+          </div>
+        </div>
+
+        <!-- 步骤3：确认 -->
+        <div class="step" data-step="confirm" hidden>
+          <span class="step-emoji">💌</span>
+          <h3>收到！已经安排好啦</h3>
+          <p class="step-sub">最后确认一下，然后就可以盖章啦</p>
+          <ul class="ticket__details">
+            <li class="row">
+              <span class="row__k">🕑 时间</span>
+              <span class="row__v" id="pickTime">…</span>
+            </li>
+            <li class="row">
+              <span class="row__k">🍜 吃的</span>
+              <span class="row__v" id="pickFood">…</span>
+            </li>
+          </ul>
+          <div class="confirm-actions">
+            <button class="btn btn--yes" id="btnAccept">好！接受邀请 ❤</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- ================= 第三页：最终约会券 ================= -->
+<main class="stage stage--done" id="page3" hidden>
+  <div class="done-wrap">
+    <div class="done-head">
+      <span class="emoji">🎊</span>
+      <h2>盖章成功！周六见！</h2>
+      <p>这张券归你啦，不许弄丢哦</p>
+    </div>
+
+    <section class="ticket--final enter" id="finalTicket">
+      <div class="ticket__stub">
+        <span class="stub-emoji">🎟️</span>
+        <span class="stub-title">DATE<br>TICKET</span>
+        <span class="stub-no">No.001</span>
+        <span class="stub-cut">✂️</span>
+      </div>
+      <div class="ticket__body">
+        <h3 class="ticket__title">甜甜<b>约会券</b></h3>
+        <p class="ticket__sub">凭此券可兑换一次「甜甜的约会」<br>有效期：一辈子 💍</p>
+        <ul class="ticket__details">
+          <li class="row">
+            <span class="row__k">🕑 时间</span>
+            <span class="row__v" id="ticketTime">…</span>
+          </li>
+          <li class="row">
+            <span class="row__k">🍜 吃的</span>
+            <span class="row__v" id="ticketFood">…</span>
+          </li>
+          <li class="row">
+            <span class="row__k">👗 穿着</span>
+            <span class="row__v">随便穿！你最好看</span>
+          </li>
+          <li class="row">
+            <span class="row__k">📍 地点</span>
+            <span class="row__v">你来定，跟着你走～</span>
+          </li>
+          <li class="row">
+            <span class="row__k">☎️ 接头暗号</span>
+            <span class="row__v">“在吗？”“在！”</span>
+          </li>
+        </ul>
+        <span class="final-stamp">已盖章 ❤</span>
+      </div>
+    </section>
+
+    <div class="ticket__actions">
+      <button class="btn btn--yes" id="btnAgain">收到！保存起来 😝</button>
+    </div>
+    <p class="ticket__ps">不许反悔哦～我已经截图啦 😝<br>迟到的话，罚一杯你最喜欢的奶茶！</p>
+  </div>
+</main>
+
+<script>
+(function(){
+  /* ---- 漂浮爱心 ---- */
+  var heartsBox = document.getElementById('hearts');
+  var emojis = ['❤','🧡','💛','💖','💘','💝','🩷'];
+  for(var i=0;i<16;i++){
+    var h=document.createElement('span');
+    h.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    h.style.left=(Math.random()*100)+'%';
+    h.style.fontSize=(0.9+Math.random()*1.1)+'rem';
+    h.style.animationDuration=(9+Math.random()*9)+'s';
+    h.style.animationDelay=(Math.random()*8)+'s';
+    heartsBox.appendChild(h);
+  }
+
+  /* ---- 第一页：拒绝按钮无限逃跑 ---- */
+  var card=document.getElementById('card');
+  var noBtn=document.getElementById('btnNo');
+  var hint=document.getElementById('hint');
+  var yesBtn=document.getElementById('btnYes');
+  var stamp=document.getElementById('stamp');
+  var page1=document.getElementById('page1');
+
+  var messages=[
+    '真的吗？','再想想嘛～','给个机会嘛','你忍心嘛？','呜呜呜','点同意嘛',
+    '别躲啦！','QAQ','狠心的人…','好吧，你赢了','就一次嘛','我会伤心的',
+    '真的不考虑一下？','我的手好累啊','放弃吧，这里没有第二选项','❤❤❤'
+  ];
+  var attempts=0;
+
+  function dodge(e){
+    if(e){ e.preventDefault(); }
+    attempts++;
+    noBtn.textContent = messages[(attempts-1) % messages.length];
+
+    /* 活动范围：始终限定在卡片内部，绝不跑出屏幕 */
+    var pad=16;
+    var cardR=card.getBoundingClientRect();
+    var yesR=yesBtn.getBoundingClientRect();
+    var btnR=noBtn.getBoundingClientRect();
+    var bw=btnR.width, bh=btnR.height;
+    var innerR={
+      left:cardR.left+pad,
+      top:cardR.top+pad,
+      right:cardR.right-pad-bw,
+      bottom:cardR.bottom-pad-bh
+    };
+    if(innerR.right < innerR.left){ innerR.right=innerR.left; }
+    if(innerR.bottom < innerR.top){ innerR.bottom=innerR.top; }
+
+    /* 尽量避开「好呀好呀」按钮所在区域 */
+    var exclude={left:yesR.left-8, top:yesR.top-8, right:yesR.right+8, bottom:yesR.bottom+8};
+    var best=null, bestOverlap=-1;
+    for(var t=0;t<60;t++){
+      var x=innerR.left+Math.random()*(innerR.right-innerR.left);
+      var y=innerR.top+Math.random()*(innerR.bottom-innerR.top);
+      var ox=Math.max(0, Math.min(x+bw,exclude.right)-Math.max(x,exclude.left));
+      var oy=Math.max(0, Math.min(y+bh,exclude.bottom)-Math.max(y,exclude.top));
+      var overlap=ox*oy;
+      if(overlap<bestOverlap||best===null){ best={x:x,y:y,overlap:overlap}; bestOverlap=overlap; }
+      if(bestOverlap===0){ break; }
+    }
+    if(bestOverlap>0 && best){
+      /* 实在绕不开就放到卡片最边上，离同意按钮尽量远 */
+      var toLeft=Math.abs(best.x-exclude.right), toRight=Math.abs(best.x+best.bw-exclude.left);
+      var toTop=Math.abs(best.y-exclude.bottom), toBottom=Math.abs(best.y+best.bh-exclude.top);
+      var ds=[['x',toLeft,innerR.left],['x',toRight,innerR.right],['y',toTop,innerR.top],['y',toBottom,innerR.bottom]];
+      ds.sort(function(a,b){return a[1]-b[1]});
+      if(ds[0][0]==='x'){ best.x=ds[0][2]; }else{ best.y=ds[0][2]; }
+    }
+
+    noBtn.style.position='absolute';
+    noBtn.style.left=(best.x-cardR.left)+'px';
+    noBtn.style.top=(best.y-cardR.top)+'px';
+    noBtn.style.margin='0';
+    noBtn.classList.remove('dodging');
+    void noBtn.offsetWidth;
+    noBtn.classList.add('dodging');
+
+    if(attempts>=4){hint.textContent='你已经躲了 '+attempts+' 次啦，别费劲了 😌'}
+    if(attempts>=9){hint.textContent='看吧，它根本停不下来……'}
+    if(attempts>=14){hint.textContent='手都点酸了吧？真的只有左边能点'}
+  }
+
+  noBtn.addEventListener('mouseenter',dodge);
+  noBtn.addEventListener('touchstart',dodge,{passive:false});
+  noBtn.addEventListener('click',dodge);
+  noBtn.addEventListener('focus',dodge);
+
+  /* ---- 彩纸屑 ---- */
+  function launchConfetti(){
+    var box=document.getElementById('confetti');
+    if(!box){
+      box=document.createElement('div');
+      box.className='confetti';
+      box.id='confetti';
+      box.setAttribute('aria-hidden','true');
+      document.body.appendChild(box);
+    }
+    var colors=['#F4627B','#FFC94D','#9FD6C4','#FF8FA3','#8EC5E8','#F5A9C9'];
+    for(var i=0;i<70;i++){
+      var s=document.createElement('span');
+      s.style.left=(Math.random()*100)+'vw';
+      s.style.background=colors[i%colors.length];
+      s.style.width=(6+Math.random()*8)+'px';
+      s.style.height=(10+Math.random()*10)+'px';
+      s.style.borderRadius=Math.random()>.5?'50%':'3px';
+      s.style.animationDuration=(2.6+Math.random()*2)+'s';
+      s.style.animationDelay=(Math.random()*1.2)+'s';
+      box.appendChild(s);
+    }
+    setTimeout(function(){ box.innerHTML=''; },6000);
+  }
+
+  /* ---- 第一页 → 第二页 ---- */
+  function accept(){
+    stamp.classList.add('show');
+    launchConfetti();
+    setTimeout(function(){
+      page1.classList.add('stage--leave');
+      page2.hidden=false;
+      page2.classList.add('enter');
+      launchConfetti();
+      setTimeout(function(){ page1.remove(); },560);
+    },950);
+  }
+  yesBtn.addEventListener('click',accept);
+
+  /* ---- 第二页：选择步骤流 ---- */
+  var time='', food='';
+  var page2=document.getElementById('page2');
+  var page3=document.getElementById('page3');
+
+  function goStep(name){
+    var steps=document.querySelectorAll('#flow .step');
+    for(var i=0;i<steps.length;i++){
+      var on=steps[i].dataset.step===name;
+      steps[i].hidden=!on;
+      if(on){
+        steps[i].classList.remove('step');
+        void steps[i].offsetWidth;
+        steps[i].classList.add('step');
+      }
+    }
+    var progMap={time:1,food:2,confirm:3};
+    var hearts=document.querySelectorAll('#prog .prog-heart');
+    for(var j=0;j<hearts.length;j++){
+      hearts[j].textContent = j < progMap[name] ? '💗' : '🤍';
+    }
+  }
+
+  function pickTimeOption(btn){
+    time=btn.getAttribute('data-time');
+    btn.classList.add('opt--picked');
+    setTimeout(function(){ goStep('food'); },320);
+  }
+  function pickFoodOption(btn){
+    food=btn.getAttribute('data-food');
+    btn.classList.add('opt--picked');
+    document.getElementById('pickTime').textContent=time;
+    document.getElementById('pickFood').textContent=food;
+    setTimeout(function(){ goStep('confirm'); },320);
+  }
+
+  var timeOpts=document.querySelectorAll('[data-time]');
+  for(var a=0;a<timeOpts.length;a++){
+    timeOpts[a].addEventListener('click',function(){ pickTimeOption(this); });
+  }
+  var foodOpts=document.querySelectorAll('[data-food]');
+  for(var b=0;b<foodOpts.length;b++){
+    foodOpts[b].addEventListener('click',function(){ pickFoodOption(this); });
+  }
+
+  /* ---- 接受邀请 → 最终券 ---- */
+  document.getElementById('btnAccept').addEventListener('click',function(){
+    document.getElementById('ticketTime').textContent=time;
+    document.getElementById('ticketFood').textContent=food;
+    page2.classList.add('stage--leave');
+    launchConfetti();
+    setTimeout(function(){
+      page2.hidden=true;
+      page3.hidden=false;
+      page3.classList.add('enter');
+      launchConfetti();
+      window.scrollTo(0,0);
+    },520);
+  });
+
+  document.getElementById('btnAgain').addEventListener('click',launchConfetti);
+})();
+</script>
+</body>
+</html>
