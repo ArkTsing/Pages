@@ -82,9 +82,23 @@ p { margin:8px 0; }
 .sc .sn { font-size:20pt; font-weight:700; font-family:'Inter',sans-serif; }
 .sc .sl { font-size:8pt; color:#64748b; margin-top:2px; font-family:'Inter',sans-serif; }
 .code { font-family:'JetBrains Mono','Consolas',monospace; font-size:9pt; line-height:1.7; background:#1e1e2e; color:#cdd6f4; border-radius:14px; padding:22px 26px; margin:18px 0; overflow-x:auto; position:relative; box-shadow:0 8px 32px rgba(0,0,0,.12); }
-.code .cm { color:#6c7086; font-style:italic; } .code .kw { color:#cba6f7; } .code .str { color:#a6e3a1; } .code .fn { color:#89b4fa; }
+.code .cm { color:#6c7086; font-style:italic; } .code .kw { color:#cba6f7; } .code .str { color:#a6e3a1; } .code .fn { color:#89b4fa; } .code .num { color:#f9a8d4; } .code .op { color:#f472b6; }
 .code::after { content:'R'; position:absolute; top:10px; right:14px; font-family:'Inter',sans-serif; font-size:8pt; font-weight:600; color:#6c7086; background:#313244; padding:2px 12px; border-radius:6px; }
 code { font-family:'JetBrains Mono','Consolas',monospace; font-size:9.5pt; background:#eef2ff; padding:2px 6px; border-radius:4px; color:#4f46e5; }
+/* ========== 代码块（折叠 + 复制 + 语法高亮） ========== */
+.cb { margin:18px 0; border-radius:14px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,.18); }
+.cb-head { display:flex; align-items:center; gap:10px; padding:10px 16px; background:#27273a; color:#e2e8f0; font-family:'Inter',sans-serif; font-size:8.5pt; border-bottom:1px solid rgba(255,255,255,.07); }
+.cb-title { font-weight:600; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cb-tags { margin-left:auto; color:#6c7086; font-size:7.5pt; background:rgba(255,255,255,.06); padding:2px 10px; border-radius:10px; white-space:nowrap; font-family:'JetBrains Mono',monospace; }
+.cb-btn { background:rgba(255,255,255,.08); color:#94a3b8; border:none; border-radius:6px; width:26px; height:26px; cursor:pointer; font-size:11pt; display:flex; align-items:center; justify-content:center; transition:all .2s; flex-shrink:0; line-height:1; }
+.cb-btn:hover { background:rgba(99,102,241,.5); color:#fff; }
+.cb-btn.copied { background:rgba(16,185,129,.5); color:#fff; }
+.cb-body { position:relative; transition:max-height .4s ease; }
+.cb.collapsed .cb-body { display:none; }
+.cb.collapsed .cb-toggle { transform:rotate(-90deg); }
+.cb-body .code { margin:0; border-radius:0; box-shadow:none; }
+body.dark .cb-head { background:#1a1a2e; }
+body.dark .cb-body .code { background:#0d0d1a; }
 .tw { overflow-x:auto; margin:14px 0; border-radius:12px; border:1px solid #e2e8f0; }
 table { width:100%; border-collapse:collapse; font-size:9.5pt; }
 thead { background:linear-gradient(135deg,#f1f5f9,#f8fafc); }
@@ -262,6 +276,25 @@ body.dark td { border-color:#333; background:#1a1a2e !important; }
 
 <div class="ib ib-amber"><div class="icon">⚠️</div><div><strong>注意：</strong>QC 阈值（≤55% 线粒体）为沿用前人的既定方案，本报告不重新讨论。QC 后 CLP 组保留率略低，可能与组织损伤导致的捕获质量差异有关。</div></div>
 
+<div class="cb">
+<div class="cb-head"><span class="cb-title">数据读取 · QC · 合并</span><span class="cb-tags">DropletUtils · scater</span><button class="cb-btn cb-toggle" onclick="toggleCb(this)">▾</button><button class="cb-btn cb-copy" onclick="copyCb(this)" title="复制代码">⧉</button></div>
+<div class="cb-body"><div class="code">
+<span class="cm"># —— 读取 + QC（scater 流程，沿用既定阈值）——</span><br>
+<span class="kw">library</span>(DropletUtils); <span class="kw">library</span>(scater)<br>
+sce_C0  &lt;- read10xCounts(<span class="str">"Sham"</span>)   <span class="cm"># Sham 样本</span><br>
+sce_C24 &lt;- read10xCounts(<span class="str">"CLP24"</span>)  <span class="cm"># CLP 样本</span><br>
+sce  &lt;- cbind(sce_C0, sce_C24)<br>
+sced &lt;- addPerCellQC(sce)<br>
+qc &lt;- sced$detected &gt;= <span class="num">200</span> &amp; sced$detected &lt;= <span class="num">9000</span> &amp;<br>
+      sced$sum &gt;= <span class="num">500</span> &amp; sced$sum &lt;= <span class="num">150000</span> &amp;<br>
+      sced$subsets_Mito_percent &lt;= <span class="num">55</span>          <span class="cm"># ≤55% 线粒体（前人设定）</span><br>
+sced &lt;- sced[, qc]<br>
+<span class="cm"># —— 转 Seurat ——</span><br>
+obj &lt;- as.Seurat(sced, counts = <span class="str">"counts"</span>, data = <span class="str">"counts"</span>)<br>
+obj$group &lt;- <span class="kw">ifelse</span>(grepl(<span class="str">"C0"</span>, colnames(obj)), <span class="str">"Sham"</span>, <span class="str">"CLP24"</span>)<br>
+<span class="cm"># 结果：Sham 14,408→11,131；CLP 10,725→6,924；合计 18,055</span><br>
+</div></div></div>
+
 <!-- S3 -->
 <h1 id="s3"><span class="sn">3</span> 全肾聚类与 PT 鉴定</h1>
 <p>按组拆分 → 锚点整合（dims 1:20）→ PCA（50）→ UMAP → 分辨率扫描 0–3，最终采用 <code>res=0.5</code>（23 簇）。用 14 组细胞类型标记物做簇身份打分。</p>
@@ -272,6 +305,27 @@ body.dark td { border-color:#333; background:#1a1a2e !important; }
 </div>
 
 <div class="ib ib-blue"><div class="icon">📋</div><div><strong>PT 鉴定结论：</strong>7 个 PT 簇身份干净（Slc34a1/Slc5a2/Lrp2 高），无血管/免疫污染；高损伤簇 14/8/9/11 确认为损伤的远端节段（CNT/DCT/CD），非 PT。全肾聚类<b>合格</b>。</div></div>
+
+<div class="cb">
+<div class="cb-head"><span class="cb-title">全肾整合 · 聚类 · PT 提取</span><span class="cb-tags">Seurat v5 · CCA</span><button class="cb-btn cb-toggle" onclick="toggleCb(this)">▾</button><button class="cb-btn cb-copy" onclick="copyCb(this)" title="复制代码">⧉</button></div>
+<div class="cb-body"><div class="code">
+<span class="cm"># —— 全肾整合 + 聚类（res=0.5 → 23 簇）——</span><br>
+DefaultAssay(obj) &lt;- <span class="str">"RNA"</span><br>
+obj &lt;- NormalizeData(obj) <span class="op">%&gt;%</span> FindVariableFeatures(nfeatures = <span class="num">3000</span>)<br>
+obj &lt;- SplitObject(obj, split.by = <span class="str">"group"</span>)<br>
+obj &lt;- lapply(obj, FUN = <span class="kw">function</span>(x) NormalizeData(x) <span class="op">%&gt;%</span> FindVariableFeatures(nfeatures = <span class="num">3000</span>))<br>
+anchors &lt;- FindIntegrationAnchors(obj, dims = <span class="num">1</span>:<span class="num">20</span>)  <span class="cm"># CCA 锚点整合</span><br>
+integrated &lt;- IntegrateData(anchors, dims = <span class="num">1</span>:<span class="num">20</span>)<br>
+DefaultAssay(integrated) &lt;- <span class="str">"integrated"</span><br>
+integrated &lt;- ScaleData(integrated) <span class="op">%&gt;%</span><br>
+  RunPCA(npcs = <span class="num">50</span>) <span class="op">%&gt;%</span><br>
+  RunUMAP(dims = <span class="num">1</span>:<span class="num">50</span>) <span class="op">%&gt;%</span><br>
+  FindNeighbors(dims = <span class="num">1</span>:<span class="num">50</span>) <span class="op">%&gt;%</span><br>
+  FindClusters(resolution = <span class="num">0.5</span>)        <span class="cm"># integrated_snn_res.0.5，23 簇</span><br>
+<span class="cm"># —— 簇身份打分，取 PT 簇 0,1,2,3,13,15,19 ——</span><br>
+PT_cells &lt;- WhichCells(integrated, idents = PT_clusters)  <span class="cm"># PT_clusters 由 marker 打分确定</span><br>
+PT_UMAP1 &lt;- subset(integrated, cells = PT_cells)          <span class="cm"># 9,740 PT 细胞</span><br>
+</div></div></div>
 
 <!-- S4 -->
 <h1 id="s4"><span class="sn">4</span> 全肾 UMAP 直接打分</h1>
@@ -311,6 +365,29 @@ body.dark td { border-color:#333; background:#1a1a2e !important; }
 
 <div class="ib ib-blue"><div class="icon">📌</div><div><strong>解读：</strong>健康簇（0/2/3）被 Sham 主导，损伤/响应簇（13/15/19）相对背景显著 CLP 富集（OR 1.9–3.2）——<b>CLP 24h 消耗健康 PT、富集损伤 PT</b>。但直接打分只能做粗粒度结论，簇内仍混有大量 Sham 细胞，无法支撑死亡类型分析。</div></div>
 
+<div class="cb">
+<div class="cb-head"><span class="cb-title">功能模块打分（AddModuleScore）</span><span class="cb-tags">assay=RNA · 对照组背景</span><button class="cb-btn cb-toggle" onclick="toggleCb(this)">▾</button><button class="cb-btn cb-copy" onclick="copyCb(this)" title="复制代码">⧉</button></div>
+<div class="cb-body"><div class="code">
+<span class="cm"># —— 12 个功能模块：健康PT / 损伤 / 修复 / 铁死亡-防御 / 铁死亡-促进 /</span><br>
+<span class="cm">#    糖酵解 / 糖异生 / 脂肪酸氧化 / 纤维化 / 凋亡 / 焦亡 / 坏死 ——</span><br>
+<span class="kw">library</span>(Seurat)<br>
+DefaultAssay(PT_UMAP1) &lt;- <span class="str">"RNA"</span><br>
+PT_UMAP1 &lt;- AddModuleScore(PT_UMAP1,<br>
+  features = PT_function_genes,          <span class="cm"># list(模块名 = 基因向量)</span><br>
+  name = <span class="str">"score_"</span>,                     <span class="cm"># 列名前缀</span><br>
+  assay = <span class="str">"RNA"</span>,                       <span class="cm"># 用 RNA assay 而非 integrated</span><br>
+  ctrl = <span class="num">100</span>,                          <span class="cm"># 随机控制基因数（默认100）</span><br>
+  seed = <span class="num">42</span>)                           <span class="cm"># 固定随机种子保证可复现</span><br>
+<span class="cm"># —— 每簇平均得分 ——</span><br>
+sc_mat &lt;- <span class="kw">do.call</span>(rbind, lapply(<span class="kw">levels</span>(Idents(PT_UMAP1)), <span class="kw">function</span>(cl){<br>
+  cells &lt;- WhichCells(PT_UMAP1, idents = cl)<br>
+  <span class="kw">colMeans</span>(PT_UMAP1@meta.data[cells, colnames(score_df)])<br>
+}))); rownames(sc_mat) &lt;- <span class="kw">levels</span>(Idents(PT_UMAP1))<br>
+<span class="cm"># —— 每簇 CLP 占比 ——</span><br>
+tab &lt;- <span class="kw">table</span>(PT_UMAP1$group, Idents(PT_UMAP1))<br>
+round(<span class="kw">sweep</span>(tab, <span class="num">2</span>, colSums(tab), <span class="str">"/"</span>), <span class="num">3</span>)<br>
+</div></div></div>
+
 <!-- S5 -->
 <h1 id="s5"><span class="sn">5</span> PT 重新整合聚类</h1>
 <p>提取 7 个 PT 簇 → 按组拆分 → 重新锚点整合（dims 1:30）→ 二次聚类，最终采用 <code>res=0.5</code>（14 亚群，0–13）。该版本去除组间批次、细粒度解析 PT 内部状态。</p>
@@ -327,6 +404,26 @@ body.dark td { border-color:#333; background:#1a1a2e !important; }
 </div>
 
 <p style="font-size:9.5pt;color:#64748b">表注：数值为百分比（%）。<strong>7 号亚群 CLP 占 55.6%</strong>，是 CLP 富集度最高的亚群；8 号接近 1:1；0/3/9 被 Sham 主导。</p>
+
+<div class="cb">
+<div class="cb-head"><span class="cb-title">PT 二次整合聚类</span><span class="cb-tags">dims 1:30 · res 0.5</span><button class="cb-btn cb-toggle" onclick="toggleCb(this)">▾</button><button class="cb-btn cb-copy" onclick="copyCb(this)" title="复制代码">⧉</button></div>
+<div class="cb-body"><div class="code">
+<span class="cm"># —— PT 细胞重新整合（去除组间批次，细粒度分型）——</span><br>
+DefaultAssay(PT_UMAP1) &lt;- <span class="str">"RNA"</span><br>
+PT_UMAP1 &lt;- SplitObject(PT_UMAP1, split.by = <span class="str">"group"</span>)<br>
+PT_UMAP1 &lt;- lapply(PT_UMAP1, FUN = <span class="kw">function</span>(x) NormalizeData(x) <span class="op">%&gt;%</span> FindVariableFeatures(nfeatures = <span class="num">3000</span>))<br>
+anchors &lt;- FindIntegrationAnchors(PT_UMAP1, dims = <span class="num">1</span>:<span class="num">30</span>)<br>
+PT.integrated &lt;- IntegrateData(anchors, dims = <span class="num">1</span>:<span class="num">30</span>)<br>
+DefaultAssay(PT.integrated) &lt;- <span class="str">"integrated"</span><br>
+PT.integrated &lt;- ScaleData(PT.integrated) <span class="op">%&gt;%</span><br>
+  RunPCA(npcs = <span class="num">50</span>) <span class="op">%&gt;%</span><br>
+  RunUMAP(dims = <span class="num">1</span>:<span class="num">20</span>) <span class="op">%&gt;%</span><br>
+  FindNeighbors(dims = <span class="num">1</span>:<span class="num">30</span>) <span class="op">%&gt;%</span><br>
+  FindClusters(resolution = <span class="num">0.5</span>)  <span class="cm"># integrated_snn_res.0.5 → 14 亚群</span><br>
+<span class="cm"># —— 亚群 × 组构成 ——</span><br>
+table(PT.integrated$group, Idents(PT.integrated))<br>
+round(<span class="kw">sweep</span>(tab, <span class="num">2</span>, colSums(tab), <span class="str">"/"</span>), <span class="num">3</span>)  <span class="cm"># CLP 占比见 5.1 表</span><br>
+</div></div></div>
 
 <!-- S6 -->
 <h1 id="s6"><span class="sn">6</span> 功能模块分析</h1>
@@ -396,6 +493,30 @@ body.dark td { border-color:#333; background:#1a1a2e !important; }
 
 <div class="ib ib-green"><div class="icon">⚰️</div><div><strong>死亡类型结论：</strong>CLP 24h 损伤 PT 的死亡景观 = <strong>铁死亡防御应激为主 + 坏死性凋亡启动</strong>；凋亡、焦亡未激活，铁死亡促进臂未启动。细胞"在防御、未大规模死亡"——符合 24h 早期应激窗口的病理阶段。</div></div>
 
+<div class="cb">
+<div class="cb-head"><span class="cb-title">损伤 PT 内死亡类型重打分 + 组间检验</span><span class="cb-tags">8+13 内重打分 · Wilcoxon + Fisher</span><button class="cb-btn cb-toggle" onclick="toggleCb(this)">▾</button><button class="cb-btn cb-copy" onclick="copyCb(this)" title="复制代码">⧉</button></div>
+<div class="cb-body"><div class="code">
+<span class="cm"># —— 限定损伤 PT（8+13）内重新打分，避免被健康细胞稀释 ——</span><br>
+PT.inj &lt;- subset(PT.integrated, idents = <span class="kw">c</span>(<span class="num">8</span>, <span class="num">13</span>))<br>
+DefaultAssay(PT.inj) &lt;- <span class="str">"RNA"</span><br>
+PT.inj &lt;- AddModuleScore(PT.inj,<br>
+  features = death_genes,   <span class="cm"># list(凋亡D, 焦亡D, 坏死D, 铁促D, 铁防D)</span><br>
+  name = <span class="str">"D"</span>, assay = <span class="str">"RNA"</span>, ctrl = <span class="num">100</span>, seed = <span class="num">42</span>)<br>
+<span class="cm"># —— 阳性阈值 = 全细胞第 90 分位 ——</span><br>
+thr &lt;- <span class="kw">apply</span>(score_df, <span class="num">2</span>, quantile, probs = <span class="num">0.9</span>)<br>
+pos &lt;- <span class="kw">sweep</span>(score_df, <span class="num">2</span>, thr, <span class="str">"&gt;"</span>)<br>
+<span class="cm"># —— CLP vs Sham：Wilcoxon（中位差）+ Fisher（阳性比例）——</span><br>
+res &lt;- <span class="kw">do.call</span>(rbind, lapply(names(death_genes), <span class="kw">function</span>(m){<br>
+  w   &lt;- wilcox.test(score_df[clp, m], score_df[sham, m])<br>
+  tb  &lt;- <span class="kw">table</span>(group, pos[, m])   <span class="cm"># 注意列序：TRUE 在第 2 列 → OR&lt;1 = CLP 富集</span><br>
+  f   &lt;- fisher.test(tb)<br>
+  <span class="kw">data.frame</span>(module = m, diff = median(clp) - median(sham),<br>
+             CLP_pos = mean(pos[clp, m]), Sham_pos = mean(pos[sham, m]),<br>
+             OR = f$estimate, p = f$p.value)<br>
+})); res$p.adj &lt;- p.adjust(<span class="kw">as.numeric</span>(res$p), <span class="str">"BH"</span>)<br>
+<span class="cm"># 结论：铁防D CLP 21.5% vs Sham 0%（OR 大）；坏死D CLP 18.8% vs 2.4%</span><br>
+</div></div></div>
+
 <!-- S8 -->
 <h1 id="s8"><span class="sn">8</span> SOX9 与修复失败（failed repair）</h1>
 <p>SOX9 是损伤后 PT 去分化/修复启动的标志。在重新聚类的 14 亚群中，SOX9 的表达模式揭示了 8/13 两个损伤簇的本质差异。</p>
@@ -432,12 +553,45 @@ body.dark td { border-color:#333; background:#1a1a2e !important; }
 
 <div class="ib ib-green"><div class="icon">🧩</div><div><strong>SOX9 结论：</strong>13 号 = <strong>去分化（SOX9↑）+ 坏死性凋亡（Ripk3/Mlkl 通路↑）+ 铁死亡防御崩溃</strong>——经典的 <strong>failed repair / maladaptive repair</strong> 表型：细胞一边尝试修复、一边以坏死性凋亡方式死亡。而 8 号 SOX9 全场最低，是"急性应激、维持身份、积极防御"的代偿态。</div></div>
 
+<div class="cb">
+<div class="cb-head"><span class="cb-title">13 号内 SOX9 × 死亡状态验证</span><span class="cb-tags">Spearman · Fisher · n=61</span><button class="cb-btn cb-toggle" onclick="toggleCb(this)">▾</button><button class="cb-btn cb-copy" onclick="copyCb(this)" title="复制代码">⧉</button></div>
+<div class="cb-body"><div class="code">
+<span class="cm"># —— 13 号簇内：SOX9 表达 vs 坏死/凋亡评分 ——</span><br>
+c13 &lt;- subset(PT.integrated, idents = <span class="num">13</span>)  <span class="cm"># n = 61</span><br>
+md  &lt;- c13@meta.data; rownames(md) &lt;- rownames(score_df)<br>
+<span class="cm"># SOX9 单基因（RNA assay, data layer）</span><br>
+sox9 &lt;- GetAssayData(c13, assay = <span class="str">"RNA"</span>, layer = <span class="str">"data"</span>)[<span class="str">"Sox9"</span>, ]<br>
+<span class="cm"># 坏死 / 凋亡用 8+13 内重打分的模块分（死亡D 列）</span><br>
+cor.test(sox9, md$坏死D, method = <span class="str">"spearman"</span>)  <span class="cm"># rho +0.30, p 0.018</span><br>
+cor.test(sox9, md$凋亡D, method = <span class="str">"spearman"</span>)  <span class="cm"># rho -0.07, ns</span><br>
+<span class="cm"># —— SOX9 高 / 低 vs 坏死高 / 低（Fisher）——</span><br>
+sox9_hi &lt;- sox9 &gt; median(sox9); nec_hi &lt;- md$坏死D &gt; quantile(md$坏死D, <span class="num">0.9</span>)<br>
+tb &lt;- <span class="kw">table</span>(sox9_hi, nec_hi)<br>
+fisher.test(tb)  <span class="cm"># OR 5.36, p 0.016 → SOX9 高细胞坏死率 38% vs 10%</span><br>
+</div></div></div>
+
 <!-- S9 -->
 <h1 id="s9"><span class="sn">9</span> 技术参数</h1>
 <div class="two">
 <div class="card"><div class="card-title">⚙️ 环境</div><ul style="padding-left:18px;font-size:10pt"><li>R 4.5.2 · Seurat v5</li><li>DropletUtils · scater · clustree · NicheNet</li><li>整合：锚点法（CCA）</li></ul></div>
 <div class="card"><div class="card-title">📐 关键参数</div><ul style="padding-left:18px;font-size:10pt"><li>全肾：整合 dims 1:20 → PCA 50 → UMAP 1:50 → res 0.5</li><li>PT 二次：整合 dims 1:30 → UMAP 1:20 → res 0.5</li><li>打分：AddModuleScore, assay=RNA, 对照组背景</li><li>阳性阈值：全细胞第 90 分位</li></ul></div>
 </div>
+
+<h2>9.1 打分与统计参数速查</h2>
+<div class="tw">
+<table><thead><tr><th>环节</th><th>函数 / 参数</th><th>取值</th></tr></thead>
+<tbody>
+<tr><td>整合</td><td><code>FindIntegrationAnchors</code> / <code>IntegrateData</code></td><td>CCA 锚点，全肾 dims 1:20；PT 二次 dims 1:30</td></tr>
+<tr><td>聚类</td><td><code>FindClusters(resolution)</code></td><td>0.5（全肾 23 簇 / PT 二次 14 亚群）</td></tr>
+<tr><td>模块打分</td><td><code>AddModuleScore(features, name, assay, ctrl, seed)</code></td><td>assay="RNA"，ctrl=100，seed=42</td></tr>
+<tr><td>阳性阈值</td><td>全细胞第 90 分位</td><td><code>apply(df, 2, quantile, 0.9)</code></td></tr>
+<tr><td>组间差异</td><td><code>wilcox.test</code></td><td>CLP vs Sham，中位数差（diff）</td></tr>
+<tr><td>富集检验</td><td><code>fisher.test(table(group, pos))</code></td><td>阳性比例 2×2，BH 校正 p.adj</td></tr>
+<tr><td>相关性</td><td><code>cor.test(method="spearman")</code></td><td>SOX9 × 坏死D / 凋亡D</td></tr>
+</tbody></table>
+</div>
+
+<div class="ib ib-blue"><div class="icon">🔑</div><div><strong>关键实现细节：</strong>死亡分析<code>AddModuleScore</code> 必须在 <strong>8+13 子集内重跑</strong>（不能复用全 PT 分数，否则被健康细胞稀释为 ~0）；Fisher 检验注意 <code>table(group, pos)</code> 的列序——TRUE 在第 2 列时 <strong>OR&lt;1 实际代表 CLP 富集</strong>；p.adj 校正前须先把 p 值 <code>as.numeric()</code>。</div></div>
 
 <div class="thr">
 <div class="sc"><div class="sn" style="color:#6366f1;">12+5</div><div class="sl">功能/死亡模块</div></div>
@@ -526,6 +680,17 @@ document.querySelectorAll('h1[id]').forEach(h=>{if(stepMap[h.id])po.observe(h);}
   },{rootMargin:'0px 0px -10% 0px',threshold:.08});
   els.forEach(el=>io.observe(el));
 })();
+/* 代码块折叠 */
+function toggleCb(btn){ const cb=btn.closest('.cb'); cb.classList.toggle('collapsed'); }
+/* 代码块复制（提取纯文本：去掉 span 标签） */
+function copyCb(btn){
+  const code=btn.closest('.cb').querySelector('.code');
+  const text=code.innerText.replace(/​/g,'');
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='✓'; btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='⧉'; btn.classList.remove('copied'); },1500);
+  });
+}
 </script>
 </body>
 </html>
