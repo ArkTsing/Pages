@@ -459,6 +459,27 @@ round(<span class="kw">sweep</span>(tab, <span class="num">2</span>, colSums(tab
 </tbody></table>
 </div>
 
+<h2>6.3 关键基因在各亚群的平均表达量</h2>
+<p style="font-size:9.5pt;color:#64748b">对应图 3 关键基因 DotPlot 的数值（<code>AverageExpression</code>，RNA assay，PT.integrated 14 亚群）。单位 = 平均表达量；<code>.</code> ≈ 0。高亮列为 8 号（应激代偿）与 13 号（去分化失败）。</p>
+<div class="tw">
+<table><thead><tr><th>基因</th><th>类别</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th style="background:#f5f3ff">7</th><th style="background:#ede9fe">8</th><th>9</th><th>10</th><th>11</th><th>12</th><th style="background:#fdf2f8">13</th></tr></thead>
+<tbody>
+<tr><td><strong>Slc34a1</strong></td><td>PT 身份</td><td>24.431</td><td>10.710</td><td>27.514</td><td>19.024</td><td>22.586</td><td>29.851</td><td>9.001</td><td>22.211</td><td class="bg-red">2.030</td><td>24.224</td><td>20.180</td><td>15.052</td><td>12.093</td><td class="bg-red">1.862</td></tr>
+<tr><td><strong>Slc5a2</strong></td><td>PT 身份</td><td>4.386</td><td>1.529</td><td>4.301</td><td>0.333</td><td>0.314</td><td>7.025</td><td>0.231</td><td>2.951</td><td class="bg-red">0.359</td><td>1.811</td><td>2.300</td><td>1.201</td><td>1.238</td><td>0.600</td></tr>
+<tr><td><strong>Havcr1</strong></td><td>损伤</td><td>0.000</td><td>0.017</td><td>0.026</td><td>0.007</td><td>0.029</td><td>0.006</td><td>0.000</td><td>0.103</td><td>0.005</td><td>0.021</td><td>0.009</td><td>0.008</td><td>0.000</td><td>0.010</td></tr>
+<tr><td><strong>Lcn2</strong></td><td>损伤</td><td>0.154</td><td>0.501</td><td>0.347</td><td>0.100</td><td>0.128</td><td>0.106</td><td>0.300</td><td>0.709</td><td class="bg-red">21.174</td><td>0.014</td><td>1.712</td><td>2.058</td><td>0.479</td><td class="bg-red">10.939</td></tr>
+<tr><td><strong>Spp1</strong></td><td>损伤</td><td>11.997</td><td>6.737</td><td>7.076</td><td>1.336</td><td>0.597</td><td>18.101</td><td>1.986</td><td>6.858</td><td class="bg-red">119.324</td><td>3.936</td><td>14.431</td><td>6.729</td><td>2.229</td><td class="bg-red">61.632</td></tr>
+<tr><td><strong>Vim</strong></td><td>去分化</td><td>0.017</td><td>0.024</td><td>0.003</td><td>0.013</td><td>0.004</td><td>0.008</td><td>0.020</td><td>0.011</td><td>0.106</td><td>0.010</td><td>0.000</td><td class="bg-red">1.999</td><td>0.185</td><td class="bg-red">3.194</td></tr>
+<tr><td><strong>Pax2</strong></td><td>去分化</td><td>0.069</td><td>0.085</td><td>0.082</td><td>0.053</td><td>0.057</td><td>0.166</td><td>0.054</td><td>0.321</td><td class="bg-red">2.145</td><td>0.191</td><td>0.146</td><td>0.019</td><td>0.055</td><td class="bg-red">0.433</td></tr>
+<tr><td><strong>Sox9</strong></td><td>去分化</td><td>0.147</td><td>0.462</td><td>0.580</td><td>0.274</td><td>0.565</td><td>0.386</td><td>0.351</td><td>0.624</td><td>0.087</td><td>0.135</td><td>0.156</td><td>0.269</td><td>0.354</td><td class="bg-red">1.381</td></tr>
+<tr><td><strong>Slc7a11</strong></td><td>铁死亡防御</td><td>0.001</td><td>0.000</td><td>0.001</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.000</td><td>0.000</td><td class="bg-red">0.156</td><td>0.000</td><td>0.000</td><td>0.030</td><td>0.055</td><td>0.010</td></tr>
+<tr><td><strong>Gpx4</strong></td><td>铁死亡防御</td><td>12.735</td><td>16.273</td><td>10.130</td><td>15.128</td><td>11.401</td><td>10.106</td><td>19.861</td><td>3.627</td><td>14.994</td><td>11.166</td><td>12.468</td><td>9.908</td><td>13.544</td><td class="bg-red">6.914</td></tr>
+<tr><td><strong>Acsl4</strong></td><td>铁死亡促进</td><td>0.272</td><td>0.478</td><td>0.335</td><td>0.244</td><td>0.264</td><td>0.385</td><td>0.313</td><td>0.371</td><td>0.273</td><td>0.149</td><td>0.390</td><td class="bg-red">0.638</td><td>0.154</td><td>0.252</td></tr>
+<tr><td><strong>Tfrc</strong></td><td>铁死亡促进</td><td>0.407</td><td>0.233</td><td>0.488</td><td>0.452</td><td>0.451</td><td>0.318</td><td>0.159</td><td>0.576</td><td>0.184</td><td>0.496</td><td>0.510</td><td>0.211</td><td>0.387</td><td>0.163</td></tr>
+</tbody></table>
+</div>
+<div class="ib ib-blue"><div class="icon">🧬</div><div><strong>基因表达解读：</strong>8 号 = <b>急性损伤高峰</b>（Spp1 119.3、Lcn2 21.2 全场最高，Slc34a1 仅 2.0）但去分化未启动（Sox9 0.087 最低）、铁死亡防御上调（Slc7a11 0.156 全场最高）——<b>"伤而不分化，积极防御"</b>。13 号 = <b>损伤 + 去分化并存</b>（Spp1 61.6、Sox9 1.381 全场最高、Vim 3.194 最高），但铁死亡防御失守（Gpx4 6.914 全场最低）——<b>"分化了但防不住"</b>。PT 身份在 8/13 双双塌陷（Slc34a1 2.0/1.9 vs 健康 19–30）。</div></div>
+
 <div class="ib ib-green"><div class="icon">🔬</div><div><strong>功能模块结论：</strong>CLP 组损伤/修复/铁死亡防御显著富集，健康PT/凋亡显著降低。<b>损伤–防御（铁死亡防御↑、修复↑、代谢重编程）已全面启动，但凋亡反而降低</b>——细胞处于"应激代偿"而非"凋亡执行"阶段。</div></div>
 
 <!-- S7 -->
@@ -531,6 +552,7 @@ res &lt;- <span class="kw">do.call</span>(rbind, lapply(names(death_genes), <spa
 <table><thead><tr><th>簇</th><th>13</th><th>4</th><th>2</th><th>5</th><th>7</th><th>12</th><th>11</th><th>1</th><th>6</th><th>3</th><th>10</th><th>9</th><th>0</th><th>8</th></tr></thead>
 <tbody>
 <tr><td><strong>SOX9</strong></td><td class="bg-red">0.490</td><td>0.245</td><td>0.240</td><td>0.168</td><td>0.159</td><td>0.158</td><td>0.128</td><td>0.101</td><td>0.101</td><td>0.098</td><td>0.083</td><td>0.069</td><td>0.057</td><td class="bg-blue">0.045</td></tr>
+<tr><td><em style="color:#94a3b8;font-weight:400">精确（GetAssayData）</em></td><td>0.4898</td><td>0.2446</td><td>0.2397</td><td>0.1681</td><td>0.1586</td><td>0.1582</td><td>0.1280</td><td>0.1011</td><td>0.1008</td><td>0.0978</td><td>0.0827</td><td>0.0688</td><td>0.0568</td><td>0.0451</td></tr>
 </tbody></table>
 </div>
 
@@ -548,7 +570,7 @@ res &lt;- <span class="kw">do.call</span>(rbind, lapply(names(death_genes), <spa
 <tr><td><strong>SOX9 高</strong></td><td>8</td><td>13</td><td class="bg-red">38%</td></tr>
 <tr><td><strong>SOX9 低</strong></td><td>4</td><td>36</td><td>10%</td></tr>
 </tbody></table>
-<p style="font-size:9pt;margin-top:8px">Fisher <strong>OR = 5.36</strong>，p = 0.016。凋亡分组无差异（p = 0.52）。</p></div>
+<p style="font-size:9pt;margin-top:8px">Fisher <strong>OR = 5.36</strong>，95% CI [1.197, 28.682]，p = 0.016。凋亡分组：SOX9 高 18 低 3 vs SOX9 低 31 低 9，OR = 0.579，p = 0.518（无差异）。</p></div>
 </div>
 
 <div class="ib ib-green"><div class="icon">🧩</div><div><strong>SOX9 结论：</strong>13 号 = <strong>去分化（SOX9↑）+ 坏死性凋亡（Ripk3/Mlkl 通路↑）+ 铁死亡防御崩溃</strong>——经典的 <strong>failed repair / maladaptive repair</strong> 表型：细胞一边尝试修复、一边以坏死性凋亡方式死亡。而 8 号 SOX9 全场最低，是"急性应激、维持身份、积极防御"的代偿态。</div></div>
