@@ -231,7 +231,6 @@ body.dark td { border-color:#333; background:#1a1a2e !important; }
 <li><a href="#s6"><span class="td"></span>功能模块分析</a></li>
 <li><a href="#s7"><span class="td"></span>死亡类型分析</a></li>
 <li><a href="#s8"><span class="td"></span>SOX9 修复失败</a></li>
-<li><a href="#s9"><span class="td"></span>技术参数</a></li>
 <li><a href="#s10"><span class="td"></span>科研设计思路</a></li>
 <li><a href="#s11"><span class="td"></span>核心结论</a></li>
 <li><a href="#s12"><span class="td"></span>反思与不足</a></li>
@@ -592,37 +591,8 @@ tb &lt;- <span class="kw">table</span>(sox9_hi, nec_hi)<br>
 fisher.test(tb)  <span class="cm"># OR 5.36, p 0.016 → SOX9 高细胞坏死率 38% vs 10%</span><br>
 </div></div></div>
 
-<!-- S9 -->
-<h1 id="s9"><span class="sn">9</span> 技术参数</h1>
-<div class="two">
-<div class="card"><div class="card-title">⚙️ 环境</div><ul style="padding-left:18px;font-size:10pt"><li>R 4.5.2 · Seurat v5</li><li>DropletUtils · scater · clustree · NicheNet</li><li>整合：锚点法（CCA）</li></ul></div>
-<div class="card"><div class="card-title">📐 关键参数</div><ul style="padding-left:18px;font-size:10pt"><li>全肾：整合 dims 1:20 → PCA 50 → UMAP 1:50 → res 0.5</li><li>PT 二次：整合 dims 1:30 → UMAP 1:20 → res 0.5</li><li>打分：AddModuleScore, assay=RNA, 对照组背景</li><li>阳性阈值：全细胞第 90 分位</li></ul></div>
-</div>
-
-<h2>9.1 打分与统计参数速查</h2>
-<div class="tw">
-<table><thead><tr><th>环节</th><th>函数 / 参数</th><th>取值</th></tr></thead>
-<tbody>
-<tr><td>整合</td><td><code>FindIntegrationAnchors</code> / <code>IntegrateData</code></td><td>CCA 锚点，全肾 dims 1:20；PT 二次 dims 1:30</td></tr>
-<tr><td>聚类</td><td><code>FindClusters(resolution)</code></td><td>0.5（全肾 23 簇 / PT 二次 14 亚群）</td></tr>
-<tr><td>模块打分</td><td><code>AddModuleScore(features, name, assay, ctrl, seed)</code></td><td>assay="RNA"，ctrl=100，seed=42</td></tr>
-<tr><td>阳性阈值</td><td>全细胞第 90 分位</td><td><code>apply(df, 2, quantile, 0.9)</code></td></tr>
-<tr><td>组间差异</td><td><code>wilcox.test</code></td><td>CLP vs Sham，中位数差（diff）</td></tr>
-<tr><td>富集检验</td><td><code>fisher.test(table(group, pos))</code></td><td>阳性比例 2×2，BH 校正 p.adj</td></tr>
-<tr><td>相关性</td><td><code>cor.test(method="spearman")</code></td><td>SOX9 × 坏死D / 凋亡D</td></tr>
-</tbody></table>
-</div>
-
-<div class="ib ib-blue"><div class="icon">🔑</div><div><strong>关键实现细节：</strong>死亡分析<code>AddModuleScore</code> 必须在 <strong>8+13 子集内重跑</strong>（不能复用全 PT 分数，否则被健康细胞稀释为 ~0）；Fisher 检验注意 <code>table(group, pos)</code> 的列序——TRUE 在第 2 列时 <strong>OR&lt;1 实际代表 CLP 富集</strong>；p.adj 校正前须先把 p 值 <code>as.numeric()</code>。</div></div>
-
-<div class="thr">
-<div class="sc"><div class="sn" style="color:#6366f1;">12+5</div><div class="sl">功能/死亡模块</div></div>
-<div class="sc"><div class="sn" style="color:#ec4899;">4+1</div><div class="sl">死亡类型（+铁死亡双臂）</div></div>
-<div class="sc"><div class="sn" style="color:#14b8a6;">n=61</div><div class="sl">13 号簇细胞数（小样本）</div></div>
-</div>
-
 <!-- S10 -->
-<h1 id="s10"><span class="sn">10</span> 整体科研设计思路</h1>
+<h1 id="s10"><span class="sn">9</span> 整体科研设计思路</h1>
 <div class="card"><div class="card-title">🧭 从"表型"到"机制"的三层设计</div>
 <p>本研究以 <strong>CLP 脓毒症 AKI 24h</strong> 为模型，围绕一条主线展开：<em>近端小管在脓毒症早期究竟发生了什么？是损伤、应激、还是死亡？</em></p>
 <p style="margin-top:10px"><strong>第一层 · 状态刻画（全肾 → PT）：</strong>先在全肾 UMAP 上完成 PT 鉴定（确保无污染、无遗漏），再直接打分验证基因集有效性，得到"CLP 消耗健康 PT、富集损伤 PT"的粗粒度结论。</p>
@@ -632,7 +602,7 @@ fisher.test(tb)  <span class="cm"># OR 5.36, p 0.016 → SOX9 高细胞坏死率
 </div>
 
 <!-- S11 -->
-<h1 id="s11"><span class="sn">11</span> 核心结论</h1>
+<h1 id="s11"><span class="sn">10</span> 核心结论</h1>
 <div class="thr">
 <div class="sc"><div class="sn" style="color:#10b981;">✅</div><div class="sl">PT 鉴定合格</div></div>
 <div class="sc"><div class="sn" style="color:#6366f1;">✅</div><div class="sl">CLP 富集损伤 PT</div></div>
@@ -649,7 +619,7 @@ fisher.test(tb)  <span class="cm"># OR 5.36, p 0.016 → SOX9 高细胞坏死率
 <div class="ib ib-blue"><div class="icon">🔗</div><div><strong>与巨噬细胞炎症的衔接：</strong>此前分析显示巨噬细胞炎症已启动（上游），本分析显示 PT 处于亚致死应激（下游）——构成"巨噬细胞激活 → 小管应激/防御 → （更晚时点）死亡"的时序叙事，为后续配受体分析（如 NicheNet/CellChat）留下接口。</div></div>
 
 <!-- S12 -->
-<h1 id="s12"><span class="sn">12</span> 反思与不足</h1>
+<h1 id="s12"><span class="sn">11</span> 反思与不足</h1>
 
 <div class="ib ib-red"><div class="icon">⚠️</div><div><strong>1. 部分样本样本量少</strong>——本分析中部分样本组样本量不足（每组生物学重复仅 1 个，13 号簇仅 61 个细胞），细胞级检验存在伪重复风险，p 值仅作探索性参考。相关结论须在更大样本或独立数据集中验证。</div></div>
 
@@ -686,7 +656,7 @@ document.querySelectorAll('.figure-card img').forEach(i=>i.addEventListener('cli
 window.addEventListener('scroll',()=>{const h=document.documentElement;const p=Math.min(100,(h.scrollTop||document.body.scrollTop)/(h.scrollHeight-h.clientHeight)*100);document.getElementById('pbar').style.width=p+'%';});
 const dmt=document.getElementById('dmt');
 dmt.addEventListener('click',()=>{document.body.classList.toggle('dark');dmt.textContent=document.body.classList.contains('dark')?'☀️':'🌙';});
-const stepMap={'s1':null,'s2':'QC','s3':'CLU','s4':'SCORE','s5':'SUB','s6':'SUB','s7':'DEATH','s8':'SOX9','s9':null,'s10':null,'s11':null,'s12':null};
+const stepMap={'s1':null,'s2':'QC','s3':'CLU','s4':'SCORE','s5':'SUB','s6':'SUB','s7':'DEATH','s8':'SOX9','s10':null,'s11':null,'s12':null};
 const po=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){const step=stepMap[e.target.id];if(step){document.querySelectorAll('.pf-step').forEach(s=>s.classList.remove('pf-active'));document.querySelector('.pf-step[data-step="'+step+'"]')?.classList.add('pf-active');}}});},{rootMargin:'-40% 0px -40% 0px'});
 document.querySelectorAll('h1[id]').forEach(h=>{if(stepMap[h.id])po.observe(h);});
 /* 卡片渐变入场：进入视口时添加 entered 类 */
