@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>洗牌抽牌 · 星轨塔罗</title>
+<link rel="stylesheet" href="style.css">
+<script>
+  (function(){try{if(localStorage.getItem('tarot_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();
+</script>
+</head>
+<body>
+<div class="page">
+
+  <header class="wrap nav">
+    <a class="nav__brand" href="index.html" aria-label="返回首页">
+      <svg class="nav__logo" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9b36a"/><stop offset="1" stop-color="#8f7bd8"/></linearGradient>
+          <linearGradient id="g2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9cf96"/><stop offset="1" stop-color="#6d8bd4"/></linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="16" fill="#171a35"/>
+        <circle cx="32" cy="32" r="19" fill="none" stroke="url(#g1)" stroke-width="7" stroke-dasharray="29.8 89.5" transform="rotate(90 32 32)"/>
+        <circle cx="32" cy="32" r="19" fill="none" stroke="url(#g2)" stroke-width="7" stroke-dasharray="29.8 89.5" transform="rotate(270 32 32)"/>
+        <circle cx="32" cy="32" r="8" fill="#f4f1ea"/>
+        <text x="32" y="36" text-anchor="middle" font-family="serif" font-size="10" fill="#0d1024" font-weight="700">塔罗</text>
+      </svg>
+      <span>星轨塔罗<small>三牌阵 · 78 张韦特</small></span>
+    </a>
+    <nav class="nav__links" aria-label="主导航">
+      <a class="nav__link back-link" href="../index.html" title="返回测试区">← 返回</a>
+      <a class="nav__link" href="index.html">首页</a>
+      <a class="nav__link active" href="draw.html">开始占卜</a>
+      <button class="theme-toggle" type="button" aria-label="切换深浅主题"><span class="theme-toggle__icon">🌙</span></button>
+    </nav>
+  </header>
+
+  <main>
+    <div class="wrap draw-head">
+      <!-- 输入数字 -->
+      <section class="number-inputs" id="inputPanel">
+        <p class="tag">第二步 · 凭直觉抽数</p>
+        <h2 class="h2">在 1–78 之间，想三个数字</h2>
+        <p class="lede">不必刻意，相信第一直觉。你给出的三个位置，对应洗乱后牌库中的三张牌。</p>
+
+        <div class="theme-chips" id="themeChips" aria-label="选择占卜主题"></div>
+
+        <div class="numbers-row" id="numbersRow">
+          <div class="number-box">
+            <label for="n0">数字一 · 过去</label>
+            <input id="n0" type="number" inputmode="numeric" min="1" max="78" placeholder="1–78" aria-label="第一个数字（对应过去）">
+          </div>
+          <div class="number-box">
+            <label for="n1">数字二 · 现在</label>
+            <input id="n1" type="number" inputmode="numeric" min="1" max="78" placeholder="1–78" aria-label="第二个数字（对应现在）">
+          </div>
+          <div class="number-box">
+            <label for="n2">数字三 · 未来</label>
+            <input id="n2" type="number" inputmode="numeric" min="1" max="78" placeholder="1–78" aria-label="第三个数字（对应未来）">
+          </div>
+        </div>
+
+        <p class="form-error" id="formError"></p>
+
+        <div style="margin-top:8px;">
+          <button class="btn" id="btnShuffle" style="font-size:16px;padding:14px 40px;">洗牌抽牌 <span aria-hidden="true">✦</span></button>
+        </div>
+        <p class="muted" style="font-size:13px;margin-top:12px;">数字不可重复 · 1 表示牌库第 1 张，78 表示最后一张</p>
+      </section>
+
+      <!-- 洗牌动画 -->
+      <section class="shuffle-stage hidden" id="shufflePanel" aria-live="polite">
+        <p class="tag" style="justify-content:center;">第三步 · 星轨洗牌</p>
+        <h2 class="h2" style="margin:14px 0 4px;">正在洗乱 78 张牌</h2>
+        <p class="lede" style="margin-bottom:40px;">你的直觉已经落定，剩下的交给星轨。</p>
+
+        <div class="shuffle-deck" aria-hidden="true">
+          <div class="fcard"></div><div class="fcard"></div><div class="fcard"></div>
+        </div>
+        <p class="shuffle-hint">洗牌中… <b id="shufflePct">0%</b></p>
+        <div class="shuffle-progress"><span id="shuffleBar"></span></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer wrap">
+    <p>抽牌过程完全在本机完成 · 不联网、不记录</p>
+    <p class="legal">星轨塔罗 · 仅供自我探索与娱乐</p>
+  </footer>
+
+</div>
+
+<script src="data.js"></script>
+<script src="theme.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var DRAW_KEY = 'tarot_draw_v1';
+  var THEME_KEY = 'tarot_theme_v1';
+
+  var inputPanel = document.getElementById('inputPanel');
+  var shufflePanel = document.getElementById('shufflePanel');
+  var errorEl = document.getElementById('formError');
+  var btnShuffle = document.getElementById('btnShuffle');
+
+  /* ---- 主题选择（从首页带入，可在此修改） ---- */
+  var sel = null;
+  try { sel = localStorage.getItem(THEME_KEY); } catch (e) { /* ignore */ }
+  var wrap = document.getElementById('themeChips');
+  if (wrap && typeof THEMES !== 'undefined') {
+    wrap.innerHTML = THEMES.map(function (t) {
+      return '<button type="button" class="theme-chip" data-key="' + t.key + '">' +
+               '<span class="tc-icon">' + t.icon + '</span>' + t.name +
+             '</button>';
+    }).join('');
+    var chips = wrap.querySelectorAll('.theme-chip');
+    function paint() {
+      chips.forEach(function (ch) {
+        ch.classList.toggle('sel', ch.getAttribute('data-key') === sel);
+      });
+    }
+    chips.forEach(function (ch) {
+      ch.addEventListener('click', function () {
+        sel = ch.getAttribute('data-key');
+        try { localStorage.setItem(THEME_KEY, sel); } catch (e) { /* ignore */ }
+        paint();
+      });
+    });
+    paint();
+  }
+
+  /* ---- 数字输入：限制输入字符 ---- */
+  var inputs = [document.getElementById('n0'), document.getElementById('n1'), document.getElementById('n2')];
+  function clearErr() {
+    errorEl.textContent = '';
+    inputs.forEach(function (inp) { inp.classList.remove('err'); });
+  }
+  inputs.forEach(function (inp) {
+    inp.addEventListener('input', function () {
+      inp.value = inp.value.replace(/[^\d]/g, '').slice(0, 2);
+      if (inp.value !== '' && (parseInt(inp.value, 10) < 1 || parseInt(inp.value, 10) > 78)) inp.value = '';
+      clearErr();
+    });
+  });
+
+  /* ---- 洗牌抽牌 ---- */
+  btnShuffle.addEventListener('click', function () {
+    var nums = inputs.map(function (inp) {
+      var v = inp.value.trim();
+      return v === '' ? NaN : parseInt(v, 10);
+    });
+    var err = validateNumbers(nums);
+    if (err) {
+      errorEl.textContent = err;
+      inputs.forEach(function (inp, i) {
+        if (!(nums[i] >= 1 && nums[i] <= 78 && Number.isInteger(nums[i]))) inp.classList.add('err');
+      });
+      return;
+    }
+    if (sel) { try { localStorage.setItem(THEME_KEY, sel); } catch (e) { /* ignore */ } }
+
+    // 进入洗牌动画
+    inputPanel.classList.add('hidden');
+    shufflePanel.classList.remove('hidden');
+    btnShuffle.disabled = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    var start = Date.now();
+    var dur = 1900;
+    var tick = setInterval(function () {
+      var el = (Date.now() - start) / dur;
+      var pct = Math.min(100, Math.round(el * 100));
+      document.getElementById('shufflePct').textContent = pct + '%';
+      document.getElementById('shuffleBar').style.width = pct + '%';
+      if (el >= 1) {
+        clearInterval(tick);
+        setTimeout(function () {
+          // 洗牌完成 → 抽牌并保存
+          var draw = drawByNumbers(nums);
+          try {
+            localStorage.setItem(DRAW_KEY, JSON.stringify(draw.map(function (d) {
+              return { id: d.card.id, reversed: d.reversed, pos: d.pos.key };
+            })));
+          } catch (e) { /* ignore */ }
+          location.href = 'result.html';
+        }, 320);
+      }
+    }, 50);
+  });
+})();
+</script>
+</body>
+</html>

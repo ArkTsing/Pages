@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>测试中 · MBTI 人格罗盘</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+
+  <header class="wrap nav">
+    <a class="nav__brand" href="index.html">
+      <svg class="nav__logo" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="c1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f7cff"/><stop offset="1" stop-color="#f59e42"/></linearGradient>
+          <linearGradient id="c2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34b37e"/><stop offset="1" stop-color="#b564d8"/></linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="18" fill="url(#c1)"/>
+        <circle cx="32" cy="32" r="17" fill="none" stroke="url(#c2)" stroke-width="7" stroke-dasharray="26.7 80" transform="rotate(90 32 32)"/>
+        <circle cx="32" cy="32" r="17" fill="none" stroke="url(#c1)" stroke-width="7" stroke-dasharray="26.7 80" transform="rotate(270 32 32)"/>
+        <circle cx="32" cy="32" r="8" fill="#fff"/>
+        <text x="32" y="36" text-anchor="middle" font-family="serif" font-size="10" fill="#16203a" font-weight="700">罗盘</text>
+      </svg>
+      <span>MBTI<small>人格罗盘</small></span>
+    </a>
+    <nav class="nav__right" aria-label="主导航">
+      <a class="nav__link back-link" href="../index.html" title="返回测试区">← 返回</a>
+      <span id="themeToggle"></span>
+      <a class="nav__link" href="index.html">首页</a>
+      <a class="nav__link active" href="test.html">开始测试</a>
+    </nav>
+  </header>
+
+  <main class="test-head wrap" id="testApp" style="min-height:70vh;">
+    <!-- 由 JS 渲染 -->
+  </main>
+
+  <footer class="footer wrap">
+    <p style="color:var(--text-2);font-size:14px;">作答进度自动保存在本机 · 可随时刷新继续</p>
+    <p class="legal">MBTI 人格罗盘 · 仅供自我探索，不构成心理诊断</p>
+  </footer>
+
+</div>
+
+<script src="data.js"></script>
+<script src="common.js"></script>
+<script>
+(function () {
+  'use strict';
+  const TOTAL = QUESTIONS.length;                 // 60
+  const PER_BATCH = 5;                            // 分页点：每 5 题一组
+  const BATCHES = Math.ceil(TOTAL / PER_BATCH);   // 12
+
+  let answers;      // answers[i] = -3..3 或 null
+  let cur = 0;      // 当前题索引
+  let dragPx = 0;   // 拖拽位移
+  let dragging = false;
+  let navTimer = null;
+  let keyBound = false;
+  const USE_POINTER = window.PointerEvent && !('ontouchstart' in window);
+
+  const SAVE_KEY = 'mbti_answers_v1';
+  const KEEP_KEY = 'mbti_done_v1';
+
+  /* URL ?reset=1 → 清除历史进度，真正重新开始 */
+  function handleReset() {
+    try {
+      if (/[\?&]reset=1/.test(window.location.search)) {
+        localStorage.removeItem(SAVE_KEY);
+        localStorage.removeItem(KEEP_KEY);
+        history.replaceState(null, '', window.location.pathname);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  handleReset();
+
+  function loadAnswers() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      answers = new Array(TOTAL).fill(null);
+      arr.forEach(function (v, i) { if (i < TOTAL && v !== null && v !== undefined) answers[i] = v; });
+    } catch (e) { answers = new Array(TOTAL).fill(null); }
+  }
+  function saveAnswers() {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(answers)); } catch (e) {}
+  }
+  function answeredCount() {
+    return answers.reduce(function (n, v) { return n + (v !== null ? 1 : 0); }, 0);
+  }
+
+  function dimColor(key) {
+    switch (key) {
+      case 'mind':    return 'var(--dim-mind)';
+      case 'energy':  return 'var(--dim-energy)';
+      case 'nature':  return 'var(--dim-nature)';
+      case 'tactics': return 'var(--dim-tactics)';
+      default:        return 'var(--text-3)';
+    }
+  }
+  function dimName(key) {
+    switch (key) {
+      case 'mind':    return '思维 I / E';
+      case 'energy':  return '能量 N / S';
+      case 'nature':  return '天性 T / F';
+      case 'tactics': return '策略 J / P';
+      default:        return '身份';
+    }
+  }
+  function scaleLabel(v) {
+    var map = {
+      '-3': '非常不同意', '-2': '不同意', '-1': '比较不同意',
+      '0': '中立', '1': '比较同意', '2': '同意', '3': '非常同意'
+    };
+    return map[String(v)] || '';
+  }
+
+  /* ============ 单张卡片 ============ */
+  function cardHtml(i) {
+    const q = QUESTIONS[i];
+    const sel = answers[i];
+    const c = dimColor(q.dim);
+    return (
+      '<div class="c-card' + (sel !== null ? ' has-answer' : '') + '" id="c-' + i + '" data-i="' + i + '" style="--q-c:' + c + '">' +
+        '<div class="c-card__inner">' +
+          '<span class="c-card__check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>已答</span>' +
+          '<div class="c-card__top">' +
+            '<span class="c-card__badge"><span class="dot"></span>' + dimName(q.dim) + '</span>' +
+            '<span class="c-card__no"><b>' + (i + 1) + '</b> / ' + TOTAL + '</span>' +
+          '</div>' +
+          '<p class="c-card__text">' + q.text + '</p>' +
+          '<p class="c-card__hint">凭第一感觉作答，没有对错之分。</p>' +
+          '<div class="c-scale">' +
+            '<div class="c-scale__opts">' +
+              SCALE.map(function (opt) {
+                const isSel = sel === opt.v;
+                return (
+                  '<label class="c-opt' + (isSel ? ' selected' : '') + '" data-v="' + opt.v + '">' +
+                    '<input type="radio" name="q' + i + '" value="' + opt.v + '"' + (isSel ? ' checked' : '') + '>' +
+                    '<span>' + (opt.v === 0 ? '—' : Math.abs(opt.v)) + '</span>' +
+                  '</label>'
+                );
+              }).join('') +
+            '</div>' +
+            '<div class="c-scale__lbls">' +
+              SCALE.map(function (opt) {
+                return '<span class="c-scale__lbl" data-v="' + opt.v + '">' + opt.label + '</span>';
+              }).join('') +
+            '</div>' +
+          '</div>' +
+          '<div class="c-card__foot">' +
+            '<span class="c-card__status' + (sel !== null ? ' done' : '') + '">' +
+              (sel !== null
+                ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 已作答 · ' + scaleLabel(sel)
+                : '未作答') +
+            '</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  /* ============ 顶部进度 + 分页点 ============ */
+  function chromeHtml() {
+    const done = answeredCount();
+    let pips = '';
+    for (let p = 0; p < BATCHES; p++) {
+      const start = p * PER_BATCH, end = Math.min(start + PER_BATCH, TOTAL);
+      let full = true, any = false;
+      for (let i = start; i < end; i++) { if (answers[i] === null) full = false; else any = true; }
+      let cls = 'pip';
+      if (p === Math.floor(cur / PER_BATCH)) cls += ' on';
+      else if (full) cls += ' done';
+      else if (any) cls += ' warn';
+      pips += '<button class="' + cls + '" data-p="' + p + '" aria-label="第 ' + (p + 1) + ' 组"></button>';
+    }
+    return (
+      '<div class="progress-strip">' +
+        '<span class="progress"><span class="progress__bar" id="progBar" style="width:' + Math.round(done / TOTAL * 100) + '%"></span></span>' +
+        '<span class="progress__count"><b id="doneN">' + done + '</b> / ' + TOTAL + '</span>' +
+      '</div>' +
+      '<div class="pips">' + pips + '</div>'
+    );
+  }
+
+  /* ============ 完成屏 ============ */
+  function doneScreenHtml() {
+    const done = answeredCount();
+    const missing = TOTAL - done;
+    return (
+      '<div class="card done-screen fade-in">' +
+        '<div class="big-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>' +
+        '<p class="tag" style="justify-content:center;">测试完成</p>' +
+        '<h2 class="h2" style="margin:12px 0 6px;">' + (missing === 0 ? '全部作答完毕！' : '已完成 ' + done + ' 题') + '</h2>' +
+        '<p class="lede" style="font-size:15px;max-width:30em;margin:0 auto;">' +
+          (missing === 0 ? '正在为你整理罗盘结果…点击下方按钮查看类型分析。' : '还有 ' + missing + ' 道题未作答，可返回补答，或直接查看当前结果。') +
+        '</p>' +
+        '<div class="done-stats">' +
+          '<div class="done-stat"><b>' + done + '</b><span>已作答</span></div>' +
+          '<div class="done-stat"><b>' + missing + '</b><span>未作答</span></div>' +
+          '<div class="done-stat"><b>' + Math.round(done / TOTAL * 100) + '%</b><span>完成度</span></div>' +
+        '</div>' +
+        '<div class="hero-cta" style="margin-top:18px;">' +
+          (missing > 0 ? '<button class="btn btn--ghost" id="goBack">返回补答</button>' : '') +
+          '<button class="btn" id="viewResult">查看我的类型</button>' +
+          '<button class="btn btn--ghost" id="retake">重新测试</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  /* ============ 首次渲染（全部卡片） ============ */
+  function renderAll() {
+    const app = document.getElementById('testApp');
+    document.title = '测试中 · ' + Math.round(answeredCount() / TOTAL * 100) + '% · MBTI 人格罗盘';
+
+    let cards = '';
+    for (let i = 0; i < TOTAL; i++) cards += cardHtml(i);
+
+    app.innerHTML =
+      chromeHtml() +
+      '<div class="carousel" id="carousel">' +
+        '<button class="carousel__arrow carousel__arrow--prev" id="arrPrev" aria-label="上一题">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>' +
+        '</button>' +
+        '<div class="carousel__track" id="track">' + cards + '</div>' +
+        '<button class="carousel__arrow carousel__arrow--next" id="arrNext" aria-label="下一题">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>' +
+        '</button>' +
+      '</div>' +
+      '<div class="carousel__index" id="carIndex"><b>1</b> / ' + TOTAL + '</div>';
+
+    cardEls = null;   // 重置卡片缓存
+    computeGeom();
+    updateAll();
+    wireAll();
+    syncChrome();
+  }
+
+  /* 卡片几何 */
+  let CARD_W = 560;
+  function computeGeom() {
+    const first = document.getElementById('c-0');
+    if (first) CARD_W = first.offsetWidth || 560;
+  }
+  /* 相邻卡片横向偏移：第 1 张露出约一半，第 2 张露出一小条（靠 z 层叠逐层遮挡） */
+  function cardOffset(d) {
+    const a = Math.abs(d);
+    if (a === 0) return 0;
+    const s = a === 1 ? Math.round(CARD_W * 0.5) : Math.round(CARD_W * 0.8);
+    return d < 0 ? -s : s;
+  }
+
+  /* 更新可见卡片位置（只渲染 ±2 张，其余隐藏） */
+  function updateAll() {
+    const els = cards();
+    // 先把所有卡设为不可见（减少离屏绘制），再逐张设置可见卡
+    for (let n = 0; n < els.length; n++) {
+      const d = n - cur;
+      const absd = Math.abs(d);
+      if (absd > 2) { els[n].style.display = 'none'; continue; }
+      els[n].style.display = '';
+
+      let sc = 1, op = 0, z = 0, pe = 'none', f = 0, bl = 0;
+      if (absd === 0) { sc = 1; op = 1; z = 3; f = 1; pe = 'auto'; bl = 0; }
+      else if (absd === 1) { sc = 0.86; op = 0.5; z = 2; f = 0.62; pe = 'auto'; bl = 2; }
+      else if (absd === 2) { sc = 0.72; op = 0.18; z = 1; f = 0.3; bl = 4; }
+
+      els[n].classList.toggle('clickable', absd === 1);
+      els[n].style.zIndex = z;
+      els[n].style.opacity = op;
+      els[n].style.pointerEvents = pe;
+      els[n].style.filter = bl ? 'blur(' + bl + 'px)' : '';
+      const tx = cardOffset(d) + dragPx * f;
+      els[n].style.transform = 'translate(-50%,-50%) translateX(' + tx + 'px) scale(' + sc + ')';
+    }
+
+    const idx = document.getElementById('carIndex');
+    if (idx) idx.innerHTML = '<b>' + (cur + 1) + '</b> / ' + TOTAL;
+
+    const prev = document.getElementById('arrPrev');
+    const next = document.getElementById('arrNext');
+    if (prev) prev.disabled = cur <= 0;
+    if (next) next.disabled = cur >= TOTAL - 1;
+  }
+
+  /* ============ 导航 ============ */
+  function goTo(i, animate) {
+    if (navTimer) { clearTimeout(navTimer); navTimer = null; }
+    if (i < 0) i = 0;
+    if (i > TOTAL - 1) i = TOTAL - 1;
+    if (i === cur) return;
+    const was = cur;
+    cur = i;
+    // 平滑：先回弹旧卡片，再更新
+    updateAll();
+    if (animate && document.getElementById('track')) {
+      // 给一个小纵深：过渡由 CSS 处理
+    }
+    syncChrome();
+  }
+
+  function syncChrome() {
+    const done = answeredCount();
+    const dn = document.getElementById('doneN');
+    if (dn) dn.textContent = done;
+    const pb = document.getElementById('progBar');
+    if (pb) pb.style.width = Math.round(done / TOTAL * 100) + '%';
+
+    // 分页点状态
+    document.querySelectorAll('.pips .pip').forEach(function (pip) {
+      const p = parseInt(pip.dataset.p, 10);
+      pip.className = 'pip';
+      if (p === Math.floor(cur / PER_BATCH)) pip.classList.add('on');
+      else {
+        const start = p * PER_BATCH, end = Math.min(start + PER_BATCH, TOTAL);
+        let full = true, any = false;
+        for (let i = start; i < end; i++) { if (answers[i] === null) full = false; else any = true; }
+        if (full) pip.classList.add('done');
+        else if (any) pip.classList.add('warn');
+      }
+    });
+  }
+
+  /* 完成 → 显示完成屏 */
+  function showDone() {
+    const app = document.getElementById('testApp');
+    cardEls = null;
+    app.innerHTML = chromeHtml() + doneScreenHtml();
+    wireDone();
+  }
+
+  /* ============ 事件绑定（委托式，低开销） ============ */
+  let cardEls = null;   // 缓存卡片引用
+  function cards() {
+    if (!cardEls) cardEls = Array.prototype.slice.call(document.querySelectorAll('.c-card'));
+    return cardEls;
+  }
+
+  function wireAll() {
+    const track = document.getElementById('track');
+    const app = document.getElementById('testApp');
+
+    /* ---- 委托：作答 change ---- */
+    app.addEventListener('change', function (e) {
+      const input = e.target;
+      if (!input || input.type !== 'radio') return;
+      const opt = input.closest('.c-opt');
+      if (!opt) return;
+      const card = input.closest('.c-card');
+      const i = parseInt(card.dataset.i, 10);
+      const v = parseInt(opt.dataset.v, 10);
+      const wasAnswered = answers[i] !== null;
+      answers[i] = v;
+      saveAnswers();
+
+      card.classList.add('has-answer');
+      card.querySelectorAll('.c-opt').forEach(function (o) { o.classList.remove('selected'); });
+      opt.classList.add('selected');
+      const st = card.querySelector('.c-card__status');
+      if (st) { st.classList.add('done'); st.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 已作答 · ' + scaleLabel(v); }
+
+      syncChrome();
+
+      // 首次作答 → 自动滑到下一题
+      if (!wasAnswered && i < TOTAL - 1) {
+        navTimer = setTimeout(function () { navTimer = null; if (cur === i) goTo(i + 1, true); }, 420);
+      } else if (!wasAnswered && i === TOTAL - 1) {
+        navTimer = setTimeout(function () { navTimer = null; showDone(); }, 600);
+      }
+    });
+
+    /* ---- 委托：卡片点击（相邻卡） ---- */
+    app.addEventListener('click', function (e) {
+      const card = e.target.closest ? e.target.closest('.c-card') : null;
+      if (card && card !== document.getElementById('c-' + cur) && !dragging) {
+        const i = parseInt(card.dataset.i, 10);
+        if (i !== cur) goTo(i, true);
+      }
+    });
+
+    /* 箭头 */
+    const prev = document.getElementById('arrPrev');
+    const next = document.getElementById('arrNext');
+    if (prev) prev.addEventListener('click', function () { goTo(cur - 1, true); });
+    if (next) next.addEventListener('click', function () { goTo(cur + 1, true); });
+
+    /* 分页点（委托到 app） */
+    app.addEventListener('click', function (e) {
+      const pip = e.target.closest ? e.target.closest('.pip') : null;
+      if (!pip) return;
+      const p = parseInt(pip.dataset.p, 10);
+      const start = p * PER_BATCH;
+      let target = start;
+      for (let i = start; i < Math.min(start + PER_BATCH, TOTAL); i++) {
+        if (answers[i] === null) { target = i; break; }
+      }
+      goTo(target, true);
+    });
+
+    /* 键盘 */
+    if (!keyBound) {
+      keyBound = true;
+      document.addEventListener('keydown', function (e) {
+        if (e.target && /input|textarea|select/i.test(e.target.tagName)) return;
+        if (e.key === 'ArrowRight') goTo(cur + 1, true);
+        if (e.key === 'ArrowLeft') goTo(cur - 1, true);
+      });
+    }
+
+    /* ---- 拖拽 / 滑动（rAF 节流） ---- */
+    let startX = 0, startCur = 0, rafId = null;
+    function setTransitions(off) {
+      cards().forEach(function (el) { el.style.transition = off ? 'none' : ''; });
+    }
+    function dragStart(x, target) {
+      if (target.closest('.c-card__foot') || target.closest('label')) return;
+      dragging = true;
+      startX = x;
+      startCur = cur;
+      dragPx = 0;
+      track.classList.add('dragging');
+      setTransitions(true);
+    }
+    function dragMove(x) {
+      if (!dragging) return;
+      if (rafId) cancelAnimationFrame(rafId);
+      const px = x - startX;
+      rafId = requestAnimationFrame(function () {
+        dragPx = px;
+        updateAll();
+      });
+    }
+    function dragEnd() {
+      if (!dragging) return;
+      dragging = false;
+      track.classList.remove('dragging');
+      if (rafId) cancelAnimationFrame(rafId);
+      const dir = dragPx < -70 ? 1 : (dragPx > 70 ? -1 : 0);
+      dragPx = 0;
+      setTransitions(false);
+      if (dir !== 0) goTo(startCur + dir, true);
+      else updateAll();
+    }
+    if (USE_POINTER) {
+      track.addEventListener('pointerdown', function (e) { dragStart(e.clientX, e.target); });
+      track.addEventListener('pointermove', function (e) { dragMove(e.clientX); });
+      track.addEventListener('pointerup', dragEnd);
+      track.addEventListener('pointercancel', dragEnd);
+    } else {
+      track.addEventListener('touchstart', function (e) { dragStart(e.touches[0].clientX, e.touches[0].target); }, { passive: true });
+      track.addEventListener('touchmove', function (e) { dragMove(e.touches[0].clientX); }, { passive: true });
+      track.addEventListener('touchend', dragEnd, { passive: true });
+      track.addEventListener('touchcancel', dragEnd, { passive: true });
+      track.addEventListener('mousedown', function (e) { dragStart(e.clientX, e.target); });
+      track.addEventListener('mousemove', function (e) { dragMove(e.clientX); });
+      track.addEventListener('mouseup', dragEnd);
+      track.addEventListener('mouseleave', dragEnd);
+    }
+
+    /* 窗口缩放重算 */
+    let rT = null;
+    window.addEventListener('resize', function () {
+      clearTimeout(rT);
+      rT = setTimeout(function () { cardEls = null; computeGeom(); updateAll(); }, 150);
+    });
+  }
+
+  function wireDone() {
+    const go = document.getElementById('goBack');
+    if (go) go.addEventListener('click', function () {
+      for (let i = 0; i < TOTAL; i++) if (answers[i] === null) { cur = i; renderAll(); return; }
+    });
+    const view = document.getElementById('viewResult');
+    view.addEventListener('click', function () {
+      const res = scoreTest(answers);
+      try { localStorage.setItem(KEEP_KEY, JSON.stringify({ pct: res.pct, code: res.code, at: Date.now() })); } catch (e) {}
+      location.href = 'result.html';
+    });
+    const retake = document.getElementById('retake');
+    if (retake) retake.addEventListener('click', function () {
+      resetTest(true);
+    });
+  }
+
+  /* 真正重置：清空进度 → 回到第 1 题重新开始 */
+  function resetTest(confirmIt) {
+    function doIt() {
+      try {
+        localStorage.removeItem(SAVE_KEY);
+        localStorage.removeItem(KEEP_KEY);
+      } catch (e) { /* ignore */ }
+      answers = new Array(TOTAL).fill(null);
+      cur = 0;
+      cardEls = null;
+      renderAll();
+    }
+    if (!confirmIt) { doIt(); return; }
+    const ok = window.confirm('确定要重新开始测试吗？当前作答进度将被清空。');
+    if (ok) doIt();
+  }
+
+  /* 初始定位：第一个未答题 */
+  function initPos() {
+    for (let i = 0; i < TOTAL; i++) if (answers[i] === null) { cur = i; break; }
+    if (answeredCount() === TOTAL) cur = TOTAL - 1;
+  }
+
+  loadAnswers();
+  initPos();
+  if (answeredCount() === TOTAL) {
+    // 全部已答 → 直接完成屏
+    const app = document.getElementById('testApp');
+    document.title = '测试完成 · MBTI 人格罗盘';
+    app.innerHTML = chromeHtml() + doneScreenHtml();
+    wireDone();
+  } else {
+    renderAll();
+  }
+})();
+</script>
+</body>
+</html>

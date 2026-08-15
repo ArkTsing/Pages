@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你的三牌阵 · 星轨塔罗</title>
+<meta name="description" content="三牌翻开后，元素构成、数字能量、叙事与综合指引逐层浮现。">
+<link rel="stylesheet" href="style.css">
+<script>
+  (function(){try{if(localStorage.getItem('tarot_theme')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();
+</script>
+</head>
+<body>
+<div class="page">
+
+  <header class="wrap nav">
+    <a class="nav__brand" href="index.html" aria-label="返回首页">
+      <svg class="nav__logo" viewBox="0 0 64 64" aria-hidden="true">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9b36a"/><stop offset="1" stop-color="#8f7bd8"/></linearGradient>
+          <linearGradient id="g2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9cf96"/><stop offset="1" stop-color="#6d8bd4"/></linearGradient>
+        </defs>
+        <rect width="64" height="64" rx="16" fill="#171a35"/>
+        <circle cx="32" cy="32" r="19" fill="none" stroke="url(#g1)" stroke-width="7" stroke-dasharray="29.8 89.5" transform="rotate(90 32 32)"/>
+        <circle cx="32" cy="32" r="19" fill="none" stroke="url(#g2)" stroke-width="7" stroke-dasharray="29.8 89.5" transform="rotate(270 32 32)"/>
+        <circle cx="32" cy="32" r="8" fill="#f4f1ea"/>
+        <text x="32" y="36" text-anchor="middle" font-family="serif" font-size="10" fill="#0d1024" font-weight="700">塔罗</text>
+      </svg>
+      <span>星轨塔罗<small>三牌阵 · 78 张韦特</small></span>
+    </a>
+    <nav class="nav__links" aria-label="主导航">
+      <a class="nav__link back-link" href="../index.html" title="返回测试区">← 返回</a>
+      <a class="nav__link" href="index.html">首页</a>
+      <a class="nav__link" href="draw.html">重新占卜</a>
+      <button class="theme-toggle" type="button" aria-label="切换深浅主题"><span class="theme-toggle__icon">🌙</span></button>
+    </nav>
+  </header>
+
+  <main id="resultApp">
+    <!-- 由 JS 渲染 -->
+  </main>
+
+  <footer class="footer wrap">
+    <p>星轨塔罗 · 仅供自我探索与娱乐，不构成现实决策建议</p>
+    <p class="legal">牌面采用公版 Rider–Waite–Smith 塔罗 · 释义为本地中文版本</p>
+  </footer>
+
+</div>
+
+<script src="data.js"></script>
+<script src="theme.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var DRAW_KEY = 'tarot_draw_v1';
+  var THEME_KEY = 'tarot_theme_v1';
+
+  var app = document.getElementById('resultApp');
+  if (!app) return;
+
+  /* ---- 读取抽牌结果 ---- */
+  var draw = null;
+  var themeKey = null;
+  try {
+    var raw = localStorage.getItem(DRAW_KEY);
+    if (raw) {
+      var arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length === 3) {
+        draw = arr.map(function (d) {
+          return {
+            card: CARDS.find(function (c) { return c.id === d.id; }),
+            reversed: !!d.reversed,
+            pos: POSITIONS.find(function (p) { return p.key === d.pos; })
+          };
+        });
+      }
+    }
+    themeKey = localStorage.getItem(THEME_KEY);
+  } catch (e) { /* ignore */ }
+
+  if (!draw || draw.some(function (d) { return !d.card || !d.pos; })) {
+    app.innerHTML =
+      '<div class="wrap card fade-in" style="max-width:640px;margin:80px auto;text-align:center;">' +
+        '<p class="tag" style="justify-content:center;">还没有牌阵</p>' +
+        '<h2 class="h2" style="margin:16px 0 10px;">先占卜一次，才能翻开你的三张牌。</h2>' +
+        '<p class="lede" style="font-size:15px;margin-bottom:28px;">凭直觉给出三个 1–78 的数字，洗牌抽牌，全程在本机完成。</p>' +
+        '<a class="btn" href="draw.html">开始占卜</a>' +
+      '</div>';
+    return;
+  }
+
+  var theme = getTheme(themeKey);
+  var reading = composeReading(draw, theme.key);
+  var balance = elementBalance(draw);
+  var tendency = elementTendency(balance);
+  var narrative = spreadNarrative(draw);
+  var numEnergy = numberEnergy(draw);
+  var journey = majorJourney(draw.map(function (d) { return d.card; }));
+  var guid = themePositionGuidance(theme.key);
+
+  /* ---- 工具函数 ---- */
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function suitName(c) {
+    return SUITS[c.suit] ? SUITS[c.suit].name : '';
+  }
+  function typeLabel(c) {
+    return c.type === 'major' ? '大阿卡纳' : '小阿卡纳 · ' + suitName(c);
+  }
+
+  /* ================= 逐张牌（含深化解读） ================= */
+  var cardsHtml = draw.map(function (d, i) {
+    var c = d.card;
+    var pos = d.pos;
+    var meaning = d.reversed ? c.rev : c.up;
+    var kw = c.kw.map(function (k) { return '<span>' + esc(k) + '</span>'; }).join('');
+    // 深化解读：明暗面 / 分主题 / 时间指针
+    var dive = cardDeepDive(c, d.reversed);
+    var court = courtCard(c);
+    var courtHtml = '';
+    if (court) {
+      courtHtml = '<div class="ac-body" style="font-size:13px;margin-top:8px;"><b>' + suitName(c) + ' ' + court.label + '</b> — ' + court.desc + '</div>';
+    }
+    return (
+      '<div class="card-slot fade-in" style="animation-delay:' + (i * 0.16) + 's">' +
+        '<div class="card-slot__label">' +
+          '<div class="pn">' + pos.name + '</div>' +
+          '<div class="ps">' + pos.sub + '</div>' +
+          '<div class="pd">' + pos.desc + '</div>' +
+        '</div>' +
+        '<div class="card-frame" data-i="' + i + '" role="button" tabindex="0" aria-label="翻开' + pos.name + '的牌">' +
+          '<div class="card-frame__inner">' +
+            '<div class="card-face card-face--front"></div>' +
+            '<div class="card-face card-face--back' + (d.reversed ? ' reversed' : '') + '">' +
+              '<img src="assets/tarot/' + c.img + '" alt="' + esc(c.name) + '" loading="lazy">' +
+            '</div>' +
+          '</div>' +
+          (d.reversed ? '<span class="rev-badge">逆位</span>' : '<span class="rev-badge rev-badge--up">正位</span>') +
+        '</div>' +
+        '<div class="card-read cr-hidden">' +
+          '<div class="kr">' + typeLabel(c) + '</div>' +
+          '<div class="kn">' + esc(c.name) + ' <span class="muted" style="font-weight:400;">' + esc(c.en) + '</span></div>' +
+          '<div class="ku">' + (d.reversed ? '逆位 · ' : '正位 · ') + c.kw.join(' / ') + '</div>' +
+          '<p class="kb">' + meaning + '</p>' +
+          courtHtml +
+          '<div class="kw">' + kw + '</div>' +
+          '<div class="deep-dive">' +
+            '<div class="dd-pos">' + positionKeyword(c, pos.key, d.reversed) + '</div>' +
+            '<div class="dd-grid">' +
+              '<div class="dd-col dd-col--light"><div class="dd-label">☀ 明 · 能量正在支持你</div><p>' + dive.light + '</p></div>' +
+              '<div class="dd-col dd-col--shadow"><div class="dd-label">☾ 暗 · 需要留意的部分</div><p>' + dive.shadow + '</p></div>' +
+            '</div>' +
+            '<div class="dd-grid dd-grid--2">' +
+              '<div class="dd-col"><div class="dd-label">♡ 感情</div><p>' + dive.love + '</p></div>' +
+              '<div class="dd-col"><div class="dd-label">⚒ 事业</div><p>' + dive.career + '</p></div>' +
+            '</div>' +
+            '<div class="dd-time"><b>时间指针 · </b>' + dive.time + '</div>' +
+            '<div class="dd-advice">' + orientationAdvice(d.reversed) + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+
+  /* ================= 深度分析区块 ================= */
+
+  // 元素构成条
+  var barsHtml = balance.map(function (b) {
+    var el = ELEMENTS[b.el];
+    var pct = Math.round(b.share * 100);
+    return (
+      '<div class="element-bar">' +
+        '<span class="eb-name">' + el.name + '</span>' +
+        '<span class="eb-track"><span class="eb-fill" data-w="' + pct + '%" style="background:' + el.color + '"></span></span>' +
+        '<span class="eb-n">' + pct + '%</span>' +
+      '</div>'
+    );
+  }).join('');
+
+  // 数字能量
+  var numHtml = '';
+  if (numEnergy.length) {
+    numHtml =
+      '<div class="analysis-card rv">' +
+        '<div class="ac-head">' +
+          '<span class="ac-ico">🔢</span>' +
+          '<span><div class="ac-title">数字能量</div><div class="ac-sub">小阿卡纳数字牌 · 数字本身的意涵</div></span>' +
+        '</div>' +
+        '<div class="num-chips">' +
+          numEnergy.map(function (n) {
+            return '<div class="num-chip">' +
+                     '<div class="nc-label">' + n.label + ' · ' + n.cardName + '</div>' +
+                     '<div class="nc-desc">' + n.desc + '</div>' +
+                   '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+  }
+
+  // 宫廷牌（若出现）
+  var courtRows = draw.map(function (d) {
+    var c = d.card;
+    var cr = courtCard(c);
+    return cr ? { card: c, court: cr } : null;
+  }).filter(Boolean);
+  var courtHtml = '';
+  if (courtRows.length) {
+    courtHtml =
+      '<div class="analysis-card rv">' +
+        '<div class="ac-head">' +
+          '<span class="ac-ico">👑</span>' +
+          '<span><div class="ac-title">宫廷人物</div><div class="ac-sub">出现的人物原型 · 可能指向你或身边人</div></span>' +
+        '</div>' +
+        '<div class="ac-body">' +
+          courtRows.map(function (r) {
+            var c = r.card;
+            return '<p style="margin:6px 0;"><b>' + suitName(c) + ' ' + r.court.label + '</b>（' + esc(c.name) + '）— ' + r.court.desc + '</p>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+  }
+
+  // 大阿卡纳旅程
+  var journeyHtml = '';
+  if (journey) {
+    journeyHtml =
+      '<div class="analysis-card rv">' +
+        '<div class="ac-head">' +
+          '<span class="ac-ico">🌌</span>' +
+          '<span><div class="ac-title">大阿卡纳 · 愚者之旅</div><div class="ac-sub">出现在牌阵中的大阿卡纳，标记你人生的章节</div></span>' +
+        '</div>' +
+        '<div class="ac-body">' +
+          journey.map(function (j) {
+            return '<p style="margin:8px 0;"><b>' + esc(j.card.name) + '</b> — ' + j.stage + '</p>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+  }
+
+  // 三牌叙事
+  var narrativeHtml =
+    '<div class="analysis-card rv">' +
+      '<div class="ac-head">' +
+        '<span class="ac-ico">📜</span>' +
+        '<span><div class="ac-title">三牌串联 · 一条时间线</div><div class="ac-sub">过去如何成为现在的来路，现在如何导向未来</div></span>' +
+      '</div>' +
+      '<div class="ac-body">' +
+        '<p style="margin:6px 0;"><b>过去 —</b> ' + narrative.past + '</p>' +
+        '<p style="margin:6px 0;"><b>现在 —</b> ' + narrative.now + '</p>' +
+        '<p style="margin:6px 0;"><b>未来 —</b> ' + narrative.future + '</p>' +
+      '</div>' +
+    '</div>';
+
+  // 主题 × 牌位指引
+  var guidHtml =
+    '<div class="analysis-card rv">' +
+      '<div class="ac-head">' +
+        '<span class="ac-ico">🎯</span>' +
+        '<span><div class="ac-title">' + theme.icon + ' ' + theme.name + '主题 · 分位指引</div><div class="ac-sub">结合你选定的主题，三张牌各自想对你说的话</div></span>' +
+      '</div>' +
+      '<div class="ac-body">' +
+        '<p style="margin:6px 0;"><b>过去 ·</b> ' + guid.past + '</p>' +
+        '<p style="margin:6px 0;"><b>现在 ·</b> ' + guid.now + '</p>' +
+        '<p style="margin:6px 0;"><b>未来 ·</b> ' + guid.future + '</p>' +
+      '</div>' +
+    '</div>';
+
+  // 元素构成（始终展示，作为第一层）
+  var elementCardHtml =
+    '<div class="analysis-card rv">' +
+      '<div class="ac-head">' +
+        '<span class="ac-ico">🧭</span>' +
+        '<span><div class="ac-title">元素构成 · 能量的配方</div><div class="ac-sub">火 水 风 土 四元素在牌阵中的分布</div></span>' +
+      '</div>' +
+      '<div class="element-bars">' + barsHtml + '</div>' +
+      (tendency ? '<div class="ac-body" style="margin-top:16px;">' + tendency + '</div>' : '') +
+    '</div>';
+
+  // 牌阵模式检测
+  var patterns = patternDetect(draw);
+  var patternHtml = '';
+  if (patterns.length) {
+    patternHtml =
+      '<div class="analysis-card rv">' +
+        '<div class="ac-head">' +
+          '<span class="ac-ico">🔗</span>' +
+          '<span><div class="ac-title">牌阵模式 · 隐藏的线索</div><div class="ac-sub">花色、数字与正逆位连成的暗线</div></span>' +
+        '</div>' +
+        '<div class="ac-body">' +
+          patterns.map(function (p) { return '<p style="margin:6px 0;">' + p + '</p>'; }).join('') +
+        '</div>' +
+      '</div>';
+  }
+
+  // 牌阵类型分布
+  var emphasis = typeEmphasis(draw);
+  var emphasisHtml =
+    '<div class="analysis-card rv">' +
+      '<div class="ac-head">' +
+        '<span class="ac-ico">🎲</span>' +
+        '<span><div class="ac-title">牌阵构成 · 这次是什么牌</div><div class="ac-sub">' + emphasis.text + '</div></span>' +
+      '</div>' +
+      '<div class="ac-body">' + emphasis.desc + '</div>' +
+    '</div>';
+
+  /* ================= 综合解读 ================= */
+  var readHtml =
+    '<div class="reading rv" style="text-align:center;">' +
+      '<p class="tag" style="justify-content:center;">综合指引 · ' + theme.name + '</p>' +
+      '<h2 class="h2" style="margin-top:12px;">' + reading.headline + '</h2>' +
+      '<p class="read-lead">' + reading.lead + '</p>' +
+      '<p class="read-frame"><b>' + theme.name + '主题 · </b>' + theme.frame + '</p>' +
+      '<p class="read-advice"><b>给你的建议 · </b>' + reading.advice + '</p>' +
+    '</div>';
+
+  /* ================= 组装 ================= */
+  var html =
+    '<div class="wrap">' +
+
+      '<section class="result-head fade-in">' +
+        '<p class="tag" style="justify-content:center;">你的三牌阵</p>' +
+        '<div class="code">过去 · 现在 · 未来</div>' +
+        '<div class="type-name">' + theme.icon + ' ' + theme.name + '主题 · ' + reading.headline + '</div>' +
+        '<div class="type-en">' + theme.desc + '</div>' +
+        '<div class="theme-banner">' +
+          '<span class="theme-banner__icon">' + theme.icon + '</span>' +
+          '<span>' +
+            '<span class="theme-banner__t">' + theme.name + ' · 本次占卜主题</span>' +
+            '<span class="theme-banner__d">' + theme.intro + '</span>' +
+          '</span>' +
+        '</div>' +
+      '</section>' +
+
+      '<section class="spread">' +
+        '<h2 class="h2">翻开牌面</h2>' +
+        '<p class="sub">三张牌会从中间的牌堆依次发出 · 逐张点击翻开 · 解读才会出现</p>' +
+        '<div class="spread-wrap">' +
+          '<div class="deal-deck" id="dealDeck" aria-hidden="true"><div class="deal-deck__stack">✦</div></div>' +
+          '<div class="spread-grid">' + cardsHtml + '</div>' +
+        '</div>' +
+      '</section>' +
+
+      '<p class="reveal-banner hidden" id="revealBanner">✦ 三牌已齐 · 解读逐层展开 ✦</p>' +
+
+      '<div id="analysisWrap" class="hidden">' +
+        '<section class="analysis">' +
+          elementCardHtml +
+          emphasisHtml +
+          patternHtml +
+          numHtml +
+          courtHtml +
+          journeyHtml +
+          narrativeHtml +
+          guidHtml +
+        '</section>' +
+        readHtml +
+        '<div class="result-actions">' +
+          '<a class="btn" href="draw.html">再占卜一次</a>' +
+          '<button class="btn btn--ghost" id="btnCopy">复制我的牌阵</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  app.innerHTML = html;
+
+  /* ---- 发牌动画 + 逐张翻牌 + 全部翻开后逐层浮现 ---- */
+  var frames = Array.prototype.slice.call(app.querySelectorAll('.card-frame'));
+  var deck = document.getElementById('dealDeck');
+  var flipped = 0;
+  var dealDone = false;
+  var cascadeStarted = false;
+
+  // 初始：三张牌从中间牌堆飞向各自牌位
+  function startDeal() {
+    if (dealDone) return;
+    dealDone = true;
+
+    frames.forEach(function (frame, i) {
+      var pos = frame.getBoundingClientRect();
+      var ds = deck.getBoundingClientRect();
+      frame.style.setProperty('--dx', (ds.left + ds.width / 2) - (pos.left + pos.width / 2) + 'px');
+      frame.style.setProperty('--dy', (ds.top + ds.height / 2) - (pos.top + pos.height / 2) + 'px');
+      frame.style.setProperty('--rot', ((i - 1) * 14) + 'deg');
+      frame.classList.add('dealt');
+    });
+    // 牌堆淡出
+    setTimeout(function () { deck.classList.add('deal-deck--gone'); }, 120);
+
+    var deckFade = 700;
+    var dealDur = 620;
+    var firstReady = deckFade + dealDur;
+    frames.forEach(function (frame, i) {
+      setTimeout(function () {
+        frame.style.pointerEvents = 'auto';
+        frame.classList.add('flip-ready');
+      }, firstReady + i * 220);
+    });
+  }
+
+  function onReveal() {
+    flipped++;
+    if (flipped >= 3) revealCascade();
+  }
+
+  frames.forEach(function (frame, i) {
+    frame.addEventListener('click', function () {
+      if (frame.classList.contains('revealed')) return;
+      frame.classList.add('revealed');
+      // 翻开的这张牌，才浮现它的描述
+      var read = frame.parentElement.querySelector('.card-read');
+      if (read) { read.classList.remove('cr-hidden'); read.classList.add('fade-in'); }
+      onReveal(i);
+    });
+    frame.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); frame.click(); }
+    });
+  });
+
+  function revealCascade() {
+    if (cascadeStarted) return;
+    cascadeStarted = true;
+
+    // 先露出一条「三牌已齐」提示
+    var banner = document.getElementById('revealBanner');
+    banner.classList.remove('hidden');
+    banner.classList.add('fade-in');
+
+    setTimeout(function () {
+      // 露出下方的分析区域，各层按顺序浮现
+      var wrap = document.getElementById('analysisWrap');
+      wrap.classList.remove('hidden');
+      var els = wrap.querySelectorAll('.rv');
+      els.forEach(function (el, i) {
+        setTimeout(function () { el.classList.add('rv-on'); }, i * 260);
+      });
+      // 全部浮现后，触发元素条动画
+      setTimeout(function () {
+        wrap.querySelectorAll('.eb-fill').forEach(function (f) {
+          f.style.width = f.getAttribute('data-w');
+        });
+      }, els.length * 260 + 350);
+
+      // 动画结束后滚动到分析区域，让浮现过程可见
+      setTimeout(function () {
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 200);
+    }, 650);
+  }
+
+  // 页面加载即开始发牌
+  startDeal();
+
+  /* ---- 复制结果 ---- */
+  var btnCopy = document.getElementById('btnCopy');
+  if (btnCopy) {
+    btnCopy.addEventListener('click', function () {
+      var lines = ['✦ 我的星轨塔罗三牌阵 · ' + theme.name + '主题 ✦'];
+      draw.forEach(function (d) {
+        var c = d.card;
+        var dive = cardDeepDive(c, d.reversed);
+        lines.push('【' + d.pos.name + '】' + c.name + '（' + c.en + '）· ' + (d.reversed ? '逆位' : '正位'));
+        lines.push('　' + (d.reversed ? c.rev : c.up));
+        lines.push('　☀ 明：' + dive.light);
+        lines.push('　☾ 暗：' + dive.shadow);
+        lines.push('　♡ 感情：' + dive.love);
+        lines.push('　⚒ 事业：' + dive.career);
+        lines.push('　⏳ 时间：' + dive.time);
+      });
+      lines.push('—— ' + reading.headline);
+      lines.push('　' + theme.frame);
+      var txt = lines.join('\n');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt).then(function () {
+          flash(btnCopy, '已复制');
+        }, function () { fallbackCopy(txt); });
+      } else { fallbackCopy(txt); }
+    });
+  }
+
+  function fallbackCopy(txt) {
+    var ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); flash(btnCopy, '已复制'); } catch (e) { /* ignore */ }
+    document.body.removeChild(ta);
+  }
+  function flash(el, msg) {
+    var old = el.textContent;
+    el.textContent = msg;
+    setTimeout(function () { el.textContent = old; }, 1600);
+  }
+})();
+</script>
+</body>
+</html>
