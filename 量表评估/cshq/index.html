@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>儿童睡眠习惯问卷 CSHQ</title>
+<link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">🌙</div>
+    <div>
+      <div class="brand-name">儿童睡眠习惯问卷</div>
+      <div class="brand-sub">CSHQ · Children's Sleep Habits Questionnaire</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="rec" onclick="goRecords()">🗂 结果记录</button>
+  <button class="home" onclick="goHome()">← 返回评估中心</button>
+</header>
+
+<div class="wrap">
+
+  <div class="stepper" style="margin-bottom:18px">
+    <div class="step done"><span class="n">1</span> 患儿信息</div>
+    <div class="step cur" id="stepQ"><span class="n">2</span> 逐题作答</div>
+    <div class="step" id="stepR"><span class="n">3</span> 查看结果</div>
+  </div>
+
+  <div class="card" id="infoCard">
+    <div class="sec-head"><h2>患儿信息</h2><div class="chip blue">睡眠习惯评估</div></div>
+    <div class="note"><b>填写说明：</b>请根据孩子<b>近一周（过去一周）</b>的睡眠情况填写。频率选项：通常（5-7 次/周）/ 有时（2-4 次/周）/ 偶尔（0-1 次/周）。共 33 题，约需 6-8 分钟。</div>
+    <div class="child-form">
+      <div class="field"><label>患儿姓名</label><input id="c_name" placeholder="如：小明"></div>
+      <div class="field"><label>编号 / 病历号</label><input id="c_id" placeholder="如：P-0024"></div>
+      <div class="field"><label>年龄</label><input id="c_age" placeholder="如：4.2 岁"></div>
+      <div class="field"><label>性别</label><select id="c_gender"><option>男</option><option>女</option></select></div>
+      <div class="field" style="grid-column:1/-1"><label>备注</label><input id="c_note" placeholder="选填"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-primary btn-lg" onclick="startQ()">开始作答 →</button></div>
+  </div>
+
+  <div class="card" id="questCard" style="display:none">
+    <div class="sec-head"><h2>逐题作答</h2><div class="chip" id="progress">0 / 33</div><div class="spacer"></div>
+      <button class="btn btn-ghost btn-sm" onclick="window.scrollTo({top:0,behavior:'smooth'})">回到顶部</button></div>
+    <div class="q-list" id="qList"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:22px;flex-wrap:wrap;gap:12px">
+      <span class="chip" id="answeredChip">已答 0 / 33</span>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="backToInfo()">← 上一步</button>
+        <button class="btn btn-primary btn-lg" onclick="score()">完成并查看结果</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <div class="sec-head"><h2>评估结果</h2><div class="chip blue">CSHQ</div></div>
+    <div id="resultBody"></div>
+  </div>
+
+</div>
+
+<footer>星瞳 · 大创项目演示 · 数据仅存本地浏览器</footer>
+
+<script src="../js/common.js"></script>
+<script>
+/* 33 题：0=通常(5-7次/周) 1=有时(2-4次/周) 2=偶尔(0-1次/周) */
+const ITEMS = [
+"孩子晚上是否在固定时间上床睡觉？","孩子上床后是否可在 20 分钟内入睡？",
+"孩子是否独自在自己床上睡觉？","孩子是否在他人床上入睡？",
+"孩子入睡时是否需要陪伴？","到了就寝时间，孩子是否有如哭闹、拒绝待在床上等不良行为？",
+"孩子是否害怕在黑暗中睡觉？","孩子是否害怕一个人睡觉？",
+"您是否认为孩子睡得太少？","您是否认为孩子的睡眠时间合适？",
+"您孩子每日的睡眠量是否保持一致？","孩子是否有尿床现象？",
+"孩子是否有说梦话现象？","孩子睡眠过程中是否不安宁，常有肢体动作？",
+"孩子是否有梦游（睡眠过程中行走）现象？","孩子是否有半夜转移到他人（父母、兄弟姐妹等）床上的现象？",
+"孩子睡眠中是否有磨牙现象？","孩子睡眠中是否有打鼾很响的现象？",
+"孩子睡眠中是否有呼吸暂停现象？","孩子睡眠中是否有憋气或气急等呼吸困难现象？",
+"孩子不在家睡是否会有问题？（例如到亲戚家或去旅行）",
+"孩子是否有半夜醒来伴无法安慰的哭吵、出汗的现象？","孩子是否有被噩梦惊醒的现象？",
+"孩子是否会夜间醒来一次？","孩子是否会夜间醒来一次以上？",
+"孩子早晨可否自己醒来？","孩子是否醒来后情绪不佳？",
+"孩子早晨是否由他人唤醒？","早上是否很难把孩子叫起床？",
+"孩子早晨起床后是否需长时间才能清醒？","孩子是否看起来疲乏？",
+"在过去的一周中，孩子看电视时是否非常瞌睡或入睡？","在过去的一周中，孩子坐车时是否非常瞌睡或入睡？"
+];
+/* CSHQ 官方 8 子量表（Owens et al., 2000），子量表间允许重叠，总分=所有题得分之和 */
+const DIM_MAP = {
+  '就寝抵抗 Bedtime Resistance':[1,2,3,4,5,6],
+  '入睡延迟 Sleep Onset Delay':[7,24],
+  '睡眠时长 Sleep Duration':[9,10,11,12,31],
+  '睡眠焦虑 Sleep Anxiety':[2,7,8,21,22,26],
+  '夜醒 Night Wakings':[24,25],
+  '异态睡眠 Parasomnias':[13,14,15,16,17,18,19,20,23],
+  '睡眠呼吸障碍 Sleep-Disordered Breathing':[18,19,20],
+  '白天嗜睡 Daytime Sleepiness':[27,28,29,30,32,33]
+};
+const ANSWERS = new Array(ITEMS.length).fill(null);
+
+function startQ(){
+  const c = requireChild(); if(!c) return;
+  $('#infoCard').style.display='none'; $('#questCard').style.display='block';
+  $('#stepQ').classList.add('cur'); renderQ(); window.scrollTo({top:0,behavior:'smooth'});
+}
+function backToInfo(){
+  $('#questCard').style.display='none'; $('#infoCard').style.display='block';
+  $('#stepQ').classList.remove('cur'); window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderQ(){
+  $('#qList').innerHTML = ITEMS.map((txt,i)=>{
+    const opts=[['0','通常<br>5-7次/周'],['1','有时<br>2-4次/周'],['2','偶尔<br>0-1次/周']].map(([v,l])=>{
+      const sel = ANSWERS[i]===v?'sel':'';
+      return `<div class="opt ${sel}" onclick="pick(${i},'${v}')"><span class="dot">✓</span><span class="ol">${l}</span></div>`;
+    }).join('');
+    return `<div class="q-item" id="qi${i}">
+      <div class="q-no">${i+1}</div><div class="q-text">${txt}</div><div class="q-opts">${opts}</div></div>`;
+  }).join('');
+  updateProg();
+}
+function pick(i,v){
+  ANSWERS[i]=v;
+  const opts=$('#qi'+i).querySelectorAll('.opt');
+  opts.forEach(o=>o.classList.remove('sel'));
+  opts[['0','1','2'].indexOf(v)].classList.add('sel');
+  updateProg();
+}
+function updateProg(){
+  const n=ANSWERS.filter(a=>a!==null).length;
+  $('#progress').textContent = n+' / '+ITEMS.length;
+  $('#answeredChip').textContent = '已答 '+n+' / '+ITEMS.length;
+}
+/* CSHQ 反向计分题：1,3,4,10,26（正向表述，出现频率低反而提示问题 → 计分时反转）*/
+const REV = new Set([1,3,4,10,26]);
+const OPT_LABELS = ['通常(5-7次/周)','有时(2-4次/周)','偶尔(0-1次/周)'];
+function score(){
+  // 强制校验：所有题必须作答
+  const missing = highlightMissing(ANSWERS);
+  if(missing.length){
+    toast('还有 '+missing.length+' 题未作答，已完成题目高亮标记');
+    return;
+  }
+  clearMissing();
+  let total=0; const dims={};
+  Object.keys(DIM_MAP).forEach(k=>dims[k]={sum:0,n:DIM_MAP[k].length});
+  const answerLabels = ANSWERS.map((a,i)=>OPT_LABELS[parseInt(a)]);
+  ITEMS.forEach((txt,i)=>{
+    let v = parseInt(ANSWERS[i]);
+    if(REV.has(i+1)) v = 2 - v; // 反向
+    total+=v;
+    for(const k in DIM_MAP){ if(DIM_MAP[k].includes(i+1)) dims[k].sum+=v; }
+  });
+  const maxTotal = ITEMS.length*2; // 每题 0-2
+  const pct = Math.round(total/maxTotal*100);
+  // 文献公认界值：总分≥41 提示存在睡眠问题（Owens et al., 2000；33题版）
+  const cutoff = 41;
+  let verdict, cls;
+  if(total < cutoff){ verdict='总分 '+total+' 分，低于 41 分界值：未提示明显睡眠问题'; cls='low'; }
+  else { verdict='总分 '+total+' 分，≥41 分界值：提示存在睡眠问题，建议进一步评估'; cls='high'; }
+  const dimList = Object.keys(dims).map(k=>({
+    name:k, val:dims[k].sum, max:dims[k].n*2,
+    pct: Math.round(dims[k].sum/(dims[k].n*2)*100)
+  }));
+  const refNote = '<b>计分说明：</b>CSHQ 每个条目按 0(通常)-2(偶尔)计分，其中第 1、3、4、10、26 题为反向计分（出现频率越低越提示问题）。总分 ≥41 为文献公认的「存在睡眠问题」界值（Owens JA et al. Sleep. 2000）。各维度得分供横向对比，正式诊断需结合临床。';
+  const rec = { total, pct, verdict, cls, dimList, answerLabels, refNote };
+  window.__cshqResult = rec;
+  renderResult(rec);
+}
+function renderResult(r){
+  const {total,pct,verdict,cls,dimList,refNote}=r;
+  $('#questCard').style.display='none'; $('#resultCard').style.display='block';
+  $('#stepQ').classList.remove('cur'); $('#stepR').classList.add('cur');
+  const bars = dimList.map(d=>{
+    return `<div class="res-dim"><div class="dm-head"><span class="dm-name">${d.name}</span><span class="dm-val">${d.val}<small> / ${d.max}</small></span></div><div class="dim-bar"><i data-w="${Math.min(100,d.pct)}" style="width:0%"></i></div></div>`;
+  }).join('');
+  // 参考建议：基于总分与维度
+  const sugs = [];
+  if(total >= 41){
+    sugs.push({t:'<b>总分达到或超过 41 分界值</b>，提示存在临床意义上的睡眠问题，建议由儿童保健科或睡眠专科进一步评估。', warn:true});
+  } else {
+    sugs.push({t:'总分低于 41 分界值，<b>暂无明确睡眠问题提示</b>，建议继续保持规律作息并定期随访。'});
+  }
+  const dim = n=>dimList.find(d=>d.name.indexOf(n)>=0);
+  const sdb = dim('睡眠呼吸障碍');
+  if(sdb && sdb.val > 0) sugs.push({t:'「睡眠呼吸障碍」维度有得分，需留意打鼾、呼吸暂停/憋气等表现，<b>建议优先排查腺样体肥大等器质性问题</b>。', warn:true});
+  const sld = dim('入睡延迟');
+  if(sld && sld.pct >= 60) sugs.push({t:'「入睡延迟」较明显，可尝试固定就寝时间、睡前 30 分钟减少屏幕刺激、建立放松的睡前程序。'});
+  const dys = dim('白天嗜睡');
+  if(dys && dys.pct >= 60) sugs.push({t:'「白天嗜睡」偏高，提示夜间睡眠质量可能不足，白天小睡时长与频率可咨询医生调整。'});
+  sugs.push({t:'结合眼动筛查：睡眠不足可能影响共同注意任务的注意力维持，建议在<b>精神状态良好时段</b>安排眼动测试。'});
+
+  $('#resultBody').innerHTML = `
+  <div class="result">
+    <div class="res-head"><h3>${$('#c_name').value||'未命名'} · CSHQ 结果</h3><span class="chip blue">按文献界值判读</span></div>
+    <div class="res-total">
+      <div class="res-big"><div class="v" data-anim="${total}">0</div><div class="k">原始总分 / ${ITEMS.length*2}</div></div>
+      <div class="res-big"><div class="v" data-anim="${pct}">0</div><div class="k">问题占比 %</div></div>
+      <div class="res-big"><div class="v" style="font-size:24px;color:${total>=41?'#F3B3AC':'#5BC9AE'}">${total>=41?'≥41':'<41'}</div><div class="k">界值判定</div></div>
+    </div>
+    <div class="res-verdict ${cls}"><span class="ico">${cls==='high'?'⚠':'✓'}</span>${verdict}</div>
+    <div class="res-sub"><b>解读说明：</b>${refNote}</div>
+    <div class="res-block"><div class="sec-label">分维度分析</div><div class="res-grid">${bars}</div></div>
+    <div class="res-block">${sugHtml(sugs)}</div>
+    <div class="res-actions">
+      <button class="btn btn-primary btn-lg" onclick="saveRecord()">💾 保存记录</button>
+      <button class="btn btn-accent btn-lg" onclick="exportOne()">⬇ 导出 Excel</button>
+      <button class="btn btn-ghost btn-lg" onclick="resetAll()">重新填写</button>
+    </div>
+  </div>`;
+  requestAnimationFrame(()=>{
+    $('#resultBody').querySelectorAll('[data-anim]').forEach(el=>animateNum(el, el.dataset.anim, 900));
+    animateBars($('#resultBody'));
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function saveRecord(){
+  const child = getChildInfo();
+  const r = window.__cshqResult;
+  if(!r) return;
+  const dims = r.dimList.map(d=>({name:d.name,val:d.val,max:d.max,pct:d.pct}));
+  recordResult('cshq','儿童睡眠习惯问卷(CSHQ)',child,r.total,r.verdict,dims,ANSWERS.slice(),r.answerLabels,r.refNote,ITEMS);
+  toast('已保存到结果记录','ok');
+}
+function exportOne(){ saveRecord(); setTimeout(()=>exportRecordsXlsx(),300); }
+function resetAll(){ if(confirm('清空本次作答并重新填写？')) location.reload(); }
+</script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>重复刻板行为量表 RBS-R</title>
+<link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">🔁</div>
+    <div>
+      <div class="brand-name">重复刻板行为量表</div>
+      <div class="brand-sub">RBS-R · Repetitive Behavior Scale</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="rec" onclick="goRecords()">🗂 结果记录</button>
+  <button class="home" onclick="goHome()">← 返回评估中心</button>
+</header>
+
+<div class="wrap">
+
+  <div class="stepper" style="margin-bottom:18px">
+    <div class="step done"><span class="n">1</span> 患儿信息</div>
+    <div class="step cur" id="stepQ"><span class="n">2</span> 逐题作答</div>
+    <div class="step" id="stepR"><span class="n">3</span> 查看结果</div>
+  </div>
+
+  <div class="card" id="infoCard">
+    <div class="sec-head"><h2>患儿信息</h2><div class="chip accent">重复刻板行为评估</div></div>
+    <div class="note"><b>填写说明：</b>请根据儿童<b>近三个月</b>的情况，判断每项行为是否出现及其严重程度：没有出现 / 轻微 / 中等 / 严重。共 43 题，约需 6-8 分钟。</div>
+    <div class="child-form">
+      <div class="field"><label>患儿姓名</label><input id="c_name" placeholder="如：小明"></div>
+      <div class="field"><label>编号 / 病历号</label><input id="c_id" placeholder="如：P-0024"></div>
+      <div class="field"><label>年龄</label><input id="c_age" placeholder="如：4.2 岁"></div>
+      <div class="field"><label>性别</label><select id="c_gender"><option>男</option><option>女</option></select></div>
+      <div class="field" style="grid-column:1/-1"><label>备注</label><input id="c_note" placeholder="选填"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-primary btn-lg" onclick="startQ()">开始作答 →</button></div>
+  </div>
+
+  <div class="card" id="questCard" style="display:none">
+    <div class="sec-head"><h2>逐题作答</h2><div class="chip" id="progress">0 / 43</div><div class="spacer"></div>
+      <button class="btn btn-ghost btn-sm" onclick="window.scrollTo({top:0,behavior:'smooth'})">回到顶部</button></div>
+    <div class="q-list" id="qList"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:22px;flex-wrap:wrap;gap:12px">
+      <span class="chip" id="answeredChip">已答 0 / 43</span>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="backToInfo()">← 上一步</button>
+        <button class="btn btn-primary btn-lg" onclick="score()">完成并查看结果</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <div class="sec-head"><h2>评估结果</h2><div class="chip accent">RBS-R</div></div>
+    <div id="resultBody"></div>
+  </div>
+
+</div>
+
+<footer>星瞳 · 大创项目演示 · 数据仅存本地浏览器</footer>
+
+<script src="../js/common.js"></script>
+<script>
+/* 43 题：0=没有出现 1=轻微 2=中等 3=严重 */
+const ITEMS = [
+"全身（翻滚身体，摇摆身体）","头部（转动头部，点头，回头）",
+"手/手指（拍手，摇或弹手指，敲手，摇动或挥舞手或手臂）",
+"运动（跑圈圈，旋转，跳，蹦）",
+"使用物体的方式（捻转或旋转物体，旋弄、拍或扔东西，让物体从手中掉落）",
+"感知觉方面（捂眼睛，贴的很近看或凝视手或其他物体，捂耳朵，闻或者嗅东西，摩擦物体表面）",
+"自己打自己（捶或拍自己的头，脸或其他身体部位）",
+"自己撞东西（用自己的头或其他部位撞桌面，地板或其他东西的表面）",
+"用东西打自己（用东西打自己的头或其他部位）","咬自己（咬自己的手、手臂、嘴唇或舌头）",
+"揪自己（揪自己的头发或皮肤）","擦或刮伤自己（手臂，脸，腿或身体上有擦伤或刮伤的痕迹）",
+"用手指或其他东西戳自己（戳眼睛，戳耳朵）","抠或挖伤皮肤（脸、手、手臂、腿或身体的皮肤有抠伤和挖伤）",
+"安置/排序（将物体以某种特定的方式或位置摆放，要求物体必须平衡或对称）",
+"完整性（要求门全开或全关；要把所有的物体都从某处或某容器中拿出来）",
+"清洁/洗（过度的清洗身体部位；坚持拣掉线头或浮线）",
+"检查（重复的检查门窗，抽屉，电器，钟，锁等等）",
+"数数（数物品或事项；数到某特定的数字，或是用特定的方式数）",
+"贮藏/收集（收集，贮藏或藏起某些特定的东西）",
+"重复（要求重复日常生活中的事件，如开关门，上下座位，穿脱衣服）",
+"触摸/轻拍（要求触摸、轻拍或是摩擦物体，物体的表面或人）",
+"进食/进食时间（极度偏爱/坚持只食用某些食品和饮品；以固定的顺序进食或进饮；坚持与食品相关的物体必须以特定的方式安排摆放）",
+"睡眠/睡眠时间（坚持某些特定的睡前活动；睡觉前，房间里的物品必须按“一定如此”的方式摆放安排；在睡觉的时候，要求特定的物体必须在场；要求特定的人必须在场）",
+"自理/盥洗室和着装（在与盥洗室相关的所有活动和任务中，如洗漱，冲凉，洗浴或着装等，都坚持一种特定的顺序；要求按特定的方式安排摆放盥洗室内的物品，或是不允许这些物品移位；坚持只穿特定的衣物）",
+"外出/交通运输（坚持某些特定的路径；一定要坐车里的某个位置；坚持外出的路途中某件物体必须在场，比如某种玩具或布料；外出的途中坚持触摸某件特定的物体或到某个特定的地点，比如某个标志牌或某间商店）",
+"玩耍/空闲时间（坚持某些特定的玩耍活动；玩耍过程中坚持某种死板的程序；玩耍的过程中，坚持某个特定物体必须在场或可用；坚持要求他人做特定的事）",
+"交流/社交互动（在社交互动中重复某些相同的话题；重复的问题；在交谈中，坚持某些特定的话题；坚持要求他人说特定的话或是以特定的方式回应他）",
+"坚持物体保持原来的位置（如玩具、日常用品、家具、图画等）","拒绝去陌生的地方",
+"一旦正在做的事情被打断，会变得很沮丧","以特定的方式行走（如，奇怪的路线）",
+"坚持要求坐在相同的位置","不喜欢周围的人在外表或行为有所改变","坚持使用特定的门",
+"喜欢连续播放同一张 CD、卡带、唱片或是一段音乐；喜欢看同一部电影或电视（或是某部电影或电视的某个片段）",
+"拒绝活动的改变，难于接受转变","每天坚持同样的日常生活、家庭生活、学校或工作的流程",
+"坚持要求在特定时间做特定的事情","对某一物体或活动深深着迷，全神贯注于其中（如火车，电脑，天气，恐龙等）",
+"深深的迷恋某件特定的物品","全神贯注于物体的某一部分，而不是整个物体（如衣服上的纽扣，玩具车的轮胎）",
+"对某一动态或运动的物体着迷，全神贯注于其中（如风扇，时钟）"
+];
+/* RBS-R 官方 6 子量表（Lam & Aman, 2007）：0-3 分；无官方总分界值 */
+const DIM_MAP = {
+  '刻板行为 Stereotyped':[1,2,3,4,5,6],
+  '自伤行为 Self-Injurious':[7,8,9,10,11,12,13,14],
+  '强迫行为 Compulsive':[15,16,17,18,19,20,21,22,23,24,25,26,27,28],
+  '仪式行为 Ritualistic':[29,30,31,32,33,34],
+  '相同行为 Sameness':[35,36,37,38],
+  '受限行为 Restricted':[39,40,41,42,43]
+};
+const OPT_LABELS = ['0·没有出现','1·轻微','2·中等','3·严重'];
+const ANSWERS = new Array(ITEMS.length).fill(null);
+
+function startQ(){
+  const c = requireChild(); if(!c) return;
+  $('#infoCard').style.display='none'; $('#questCard').style.display='block';
+  $('#stepQ').classList.add('cur'); renderQ(); window.scrollTo({top:0,behavior:'smooth'});
+}
+function backToInfo(){
+  $('#questCard').style.display='none'; $('#infoCard').style.display='block';
+  $('#stepQ').classList.remove('cur'); window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderQ(){
+  $('#qList').innerHTML = ITEMS.map((txt,i)=>{
+    const opts=[['0','没有出现'],['1','轻微'],['2','中等'],['3','严重']].map(([v,l])=>{
+      const sel = ANSWERS[i]===v?'sel':'';
+      return `<div class="opt ${sel}" onclick="pick(${i},'${v}')"><span class="dot">✓</span><span class="ol">${l}</span></div>`;
+    }).join('');
+    return `<div class="q-item" id="qi${i}">
+      <div class="q-no">${i+1}</div><div class="q-text">${txt}</div><div class="q-opts">${opts}</div></div>`;
+  }).join('');
+  updateProg();
+}
+function pick(i,v){
+  ANSWERS[i]=v;
+  const opts=$('#qi'+i).querySelectorAll('.opt');
+  opts.forEach(o=>o.classList.remove('sel'));
+  opts[['0','1','2','3'].indexOf(v)].classList.add('sel');
+  updateProg();
+}
+function updateProg(){
+  const n=ANSWERS.filter(a=>a!==null).length;
+  $('#progress').textContent = n+' / '+ITEMS.length;
+  $('#answeredChip').textContent = '已答 '+n+' / '+ITEMS.length;
+}
+function score(){
+  // 强制校验：所有题必须作答
+  const missing = highlightMissing(ANSWERS);
+  if(missing.length){ toast('还有 '+missing.length+' 题未作答，已完成题目高亮标记'); return; }
+  clearMissing();
+  let total=0; const dims={};
+  Object.keys(DIM_MAP).forEach(k=>dims[k]={sum:0,n:DIM_MAP[k].length});
+  const answerLabels = ANSWERS.map(a=>OPT_LABELS[parseInt(a)]);
+  ITEMS.forEach((txt,i)=>{
+    const v = parseInt(ANSWERS[i]);
+    total+=v;
+    for(const k in DIM_MAP){ if(DIM_MAP[k].includes(i+1)) dims[k].sum+=v; }
+  });
+  const maxTotal = ITEMS.length*3;
+  const pct = Math.round(total/maxTotal*100);
+  // 官方无总分界值；给出子量表均分
+  const dimList = Object.keys(dims).map(k=>({
+    name:k, val:dims[k].sum, max:dims[k].n*3,
+    pct: Math.round(dims[k].sum/(dims[k].n*3)*100),
+    avg: (dims[k].sum/dims[k].n).toFixed(2)
+  }));
+  // 自伤行为子量表若 >0 提示安全关注
+  const si = dimList.find(d=>d.name.indexOf('自伤')>=0);
+  const refNote = '<b>计分说明：</b>RBS-R 每个条目按 0（没有出现）~3（严重）计分，按官方 6 个子量表（刻板/自伤/强迫/仪式/相同/受限）分别计分。量表无官方总分界值，正式判读需参考研究常模。若「自伤行为」子量表得分 &gt;0，应优先重视安全。';
+  const rec = { total, pct, dimList, avgTotal:(total/ITEMS.length).toFixed(2), answerLabels, refNote, siRisk: si && si.val>0 };
+  window.__rbsrResult = rec;
+  renderResult(rec);
+}
+function renderResult(r){
+  const {total,pct,dimList,avgTotal,refNote,siRisk}=r;
+  $('#questCard').style.display='none'; $('#resultCard').style.display='block';
+  $('#stepQ').classList.remove('cur'); $('#stepR').classList.add('cur');
+  const bars = dimList.map(d=>{
+    return `<div class="res-dim"><div class="dm-head"><span class="dm-name">${d.name}</span><span class="dm-val">${d.val}<small> / ${d.max}</small></span></div><div class="dim-bar"><i data-w="${Math.min(100,d.pct)}" style="width:0%"></i></div>
+      <div class="dm-sub">子量表均分 ${d.avg} / 3</div></div>`;
+  }).join('');
+  const safety = siRisk ? '<div class="res-verdict high" style="margin:0 22px 6px"><span class="ico">⚠</span>自伤行为子量表得分 &gt;0，请优先评估安全风险</div>' : '';
+  // 参考建议
+  const sugs = [];
+  if(siRisk) sugs.push({t:'<b>自伤行为子量表得分 &gt;0</b>，属安全风险信号，建议立即评估行为频率与诱因，必要时转介行为干预/专科。', warn:true});
+  const hi = dimList.filter(d=>parseFloat(d.avg) >= 2);
+  if(hi.length) sugs.push({t:'以下子量表均分较高（≥2/3）：<b>'+hi.map(d=>d.name.split(' ')[0]).join('、')+'</b>，提示该类型重复行为较突出，可纳入干预重点。'});
+  const st = dimList.find(d=>d.name.indexOf('刻板')>=0);
+  if(st && parseFloat(st.avg) >= 1.5) sugs.push({t:'「刻板行为」与眼动「几何图形偏好指数（GPI）」可能存在关联，建议对比两项结果，评估非社会性刺激偏好程度。'});
+  sugs.push({t:'<b>干预方向：</b>重复行为明显时，可采用行为功能分析（如行为发生的前因-行为-后果）明确维持因素，再制定替代行为训练。'});
+
+  $('#resultBody').innerHTML = `
+  <div class="result">
+    <div class="res-head"><h3>${$('#c_name').value||'未命名'} · RBS-R 结果</h3><span class="chip blue">按官方 6 子量表计分</span></div>
+    <div class="res-total">
+      <div class="res-big"><div class="v" data-anim="${total}">0</div><div class="k">原始总分 / ${ITEMS.length*3}</div></div>
+      <div class="res-big"><div class="v" data-anim="${avgTotal}">0</div><div class="k">条目均分 / 3</div></div>
+      <div class="res-big"><div class="v" style="font-size:24px">${ITEMS.length}</div><div class="k">题目数</div></div>
+    </div>
+    ${safety}
+    <div class="res-verdict low" style="margin-top:8px"><span class="ico">ℹ</span>原始得分越高，重复刻板行为越明显（无官方界值，需参考常模）</div>
+    <div class="res-sub"><b>解读说明：</b>${refNote}</div>
+    <div class="res-block"><div class="sec-label">分维度分析</div><div class="res-grid">${bars}</div></div>
+    <div class="res-block">${sugHtml(sugs)}</div>
+    <div class="res-actions">
+      <button class="btn btn-primary btn-lg" onclick="saveRecord()">💾 保存记录</button>
+      <button class="btn btn-accent btn-lg" onclick="exportOne()">⬇ 导出 Excel</button>
+      <button class="btn btn-ghost btn-lg" onclick="resetAll()">重新填写</button>
+    </div>
+  </div>`;
+  requestAnimationFrame(()=>{
+    $('#resultBody').querySelectorAll('[data-anim]').forEach(el=>animateNum(el, el.dataset.anim, 900));
+    animateBars($('#resultBody'));
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function saveRecord(){
+  const child = getChildInfo();
+  const r = window.__rbsrResult;
+  if(!r) return;
+  const dims = r.dimList.map(d=>({name:d.name,val:d.val,max:d.max,pct:d.pct,note:'子量表均分 '+d.avg+' / 3'}));
+  const verdict = '总分 '+r.total+'（条目均分 '+r.avgTotal+'/3）'+(r.siRisk?'；自伤行为>0':'');
+  recordResult('rbsr','重复刻板行为量表(RBS-R)',child,r.total,verdict,dims,ANSWERS.slice(),r.answerLabels,r.refNote,ITEMS);
+  toast('已保存到结果记录','ok');
+}
+function exportOne(){ saveRecord(); setTimeout(()=>exportRecordsXlsx(),300); }
+function resetAll(){ if(confirm('清空本次作答并重新填写？')) location.reload(); }
+</script>
+</body>
+</html>

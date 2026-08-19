@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>社交反应量表第二版 SRS-2</title>
+<link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">🤝</div>
+    <div>
+      <div class="brand-name">社交反应量表第二版</div>
+      <div class="brand-sub">SRS-2 · Social Responsiveness Scale</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="rec" onclick="goRecords()">🗂 结果记录</button>
+  <button class="home" onclick="goHome()">← 返回评估中心</button>
+</header>
+
+<div class="wrap">
+
+  <div class="stepper" style="margin-bottom:18px">
+    <div class="step done"><span class="n">1</span> 患儿信息</div>
+    <div class="step cur" id="stepQ"><span class="n">2</span> 逐题作答</div>
+    <div class="step" id="stepR"><span class="n">3</span> 查看结果</div>
+  </div>
+
+  <div class="card" id="infoCard">
+    <div class="sec-head"><h2>患儿信息</h2><div class="chip accent">孤独症核心特质评估</div></div>
+    <div class="note"><b>填写说明：</b>请根据儿童<b>近三个月</b>的情况，对每个条目选择最符合的频率：没有 / 有时 / 经常 / 总是。共 65 题，约需 8-10 分钟。</div>
+    <div class="child-form">
+      <div class="field"><label>患儿姓名</label><input id="c_name" placeholder="如：小明"></div>
+      <div class="field"><label>编号 / 病历号</label><input id="c_id" placeholder="如：P-0024"></div>
+      <div class="field"><label>年龄</label><input id="c_age" placeholder="如：4.2 岁"></div>
+      <div class="field"><label>性别</label><select id="c_gender"><option>男</option><option>女</option></select></div>
+      <div class="field" style="grid-column:1/-1"><label>备注</label><input id="c_note" placeholder="选填"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-primary btn-lg" onclick="startQ()">开始作答 →</button></div>
+  </div>
+
+  <div class="card" id="questCard" style="display:none">
+    <div class="sec-head"><h2>逐题作答</h2><div class="chip" id="progress">0 / 65</div><div class="spacer"></div>
+      <button class="btn btn-ghost btn-sm" onclick="window.scrollTo({top:0,behavior:'smooth'})">回到顶部</button></div>
+    <div class="q-list" id="qList"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:22px;flex-wrap:wrap;gap:12px">
+      <span class="chip" id="answeredChip">已答 0 / 65</span>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="backToInfo()">← 上一步</button>
+        <button class="btn btn-primary btn-lg" onclick="score()">完成并查看结果</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <div class="sec-head"><h2>评估结果</h2><div class="chip accent">SRS-2</div></div>
+    <div id="resultBody"></div>
+  </div>
+
+</div>
+
+<footer>星瞳 · 大创项目演示 · 数据仅存本地浏览器</footer>
+
+<script src="../js/common.js"></script>
+<script>
+/* 65 题：0=没有 1=有时 2=经常 3=总是；反向题(正向表述)已标注 rev */
+const ITEMS = [
+"在社交场合较独处时表现得明显烦躁","面部表情与当时说话的内容不符","与别人互动时表现得很自信","当受到压力时表现出固定奇特的行为方式",
+"不会意识到被别人利用","宁愿一个人待着也不愿与别人待在一起","能意识到别人的想法或感觉","行为方式独特、奇怪",
+"粘着大人，对他们十分依赖","只能理解谈话的字面意思，不能理解其真正含义","很有自信","能够向别人传达他/她的感受",
+"与同伴交流时显得笨拙（例如在交谈中不懂得轮流说话）","不能很好地与别人协调","能理解别人的语调及面部表情的意思",
+"避免目光接触或有不正常的目光接触","能意识到事情的不公平","即使很努力，仍很难与别人做朋友",
+"在谈话中想理解别人的意思时受挫","存在不同寻常的感官兴趣（如喃喃自语或旋转物体），或特别的玩玩具方式",
+"能够模仿别人的动作","能与同龄人正常、恰当地玩耍","除非叫他去，否则不加入集体活动",
+"较之其他儿童，他/她很难接受常规的改变","不介意与别人不同步或与别人不同调","当别人伤心时能安慰别人",
+"避免与同伴或成人开始社会交往","重复地想或重复谈论同一样东西","被其他儿童认为古怪或奇特",
+"在一个复杂（很多事情同时发生）的环境中会变得不高兴","他/她一旦开始想一件事就会坚持想下去","个人卫生好",
+"在交往时即使他/她努力尝试礼貌，但是仍显得笨拙无礼","逃避想要亲近他/她的人","不能维持正常的交谈",
+"与成人交流有困难","与同龄人交流有困难","当别人的情绪改变时能有恰当的反应（如：当朋友或玩伴由高兴变得伤心时）",
+"有不寻常的、狭隘的兴趣","富有想象力，会假装（不脱离实际的）","毫无目的地在两个活动之间走动",
+"对声音、质地或特殊气味敏感","容易与抚养者分开","不能理解时间的相互关系（如因果），而同龄人可以",
+"能注意别人看或听的地方","有过度严肃的面部表情","表现得很傻或突然大笑","有幽默感，能理解笑话",
+"对一些任务完成得极好，但大多数任务不能完成得同样好","有重复的奇怪的行为，如拍手或摇晃","不能直接回答问题或答非所问",
+"会察觉他/她正在大声说话或制造了噪音","用奇怪的语调与人谈话（如像机器人说话或像在演讲）","对人的反应好像把人当成物体",
+"能意识到他/她太靠近别人或侵犯了别人的空间","会走到两个正在谈话的人中间","经常被嘲弄",
+"对事物的部分过于专注而忽视了整体，例如要求描述故事情节时，他/她会描述故事人物穿的衣服","多疑",
+"感情淡漠，不表达他/她的感受","固执，要改变他/她的想法很难","做事的原因很特别或不合逻辑",
+"与他人接触时方式特别（如碰碰别人后不说话就走开）","在社交场合中特别紧张","无目的地凝视或注视"
+];
+const REV = new Set([3,7,11,12,15,17,21,22,25,26,32,38,40,43,45,48,52,55]); // 1-based 反向题（官方18题）
+/* 5 个治疗子量表（参考划分；正式判读需按 SRS-2 手册的题号映射与常模换算 T 分） */
+const DIM_MAP = {
+  '社会知觉 Social Awareness':[1,7,15,16,21,25,30,45,49,55,58,64],
+  '社会认知 Social Cognition':[2,5,8,17,19,24,26,38,40,42,44,52,60],
+  '社会沟通 Social Communication':[3,10,12,14,18,22,33,35,36,37,41,51,53,54,57,59,61,62],
+  '社会动机 Social Motivation':[6,9,11,13,23,27,34,43,46,56,63],
+  '重复刻板行为 RRB':[4,20,28,29,31,32,39,47,48,50,65]
+};
+const OPT_LABELS = ['0·没有','1·有时','2·经常','3·总是'];
+const ANSWERS = new Array(ITEMS.length).fill(null);
+
+function startQ(){
+  const c = requireChild();
+  if(!c) return;
+  $('#infoCard').style.display='none';
+  $('#questCard').style.display='block';
+  $('#stepQ').classList.add('cur');
+  renderQ();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function backToInfo(){
+  $('#questCard').style.display='none';
+  $('#infoCard').style.display='block';
+  $('#stepQ').classList.remove('cur');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderQ(){
+  $('#qList').innerHTML = ITEMS.map((txt,i)=>{
+    const opts=[['0','没有'],['1','有时'],['2','经常'],['3','总是']].map(([v,l])=>{
+      const sel = ANSWERS[i]===v?'sel':'';
+      return `<div class="opt ${sel}" onclick="pick(${i},'${v}')"><span class="dot">✓</span><span class="ol">${l}</span></div>`;
+    }).join('');
+    return `<div class="q-item" id="qi${i}">
+      <div class="q-no">${i+1}</div>
+      <div class="q-text">${txt}${REV.has(i+1)?'<span class="q-sub">（正向表述，计分时反向）</span>':''}</div>
+      <div class="q-opts">${opts}</div>
+    </div>`;
+  }).join('');
+  updateProg();
+}
+function pick(i,v){
+  ANSWERS[i]=v;
+  $('#qi'+i).querySelectorAll('.opt').forEach(o=>o.classList.remove('sel'));
+  const opts=$('#qi'+i).querySelectorAll('.opt');
+  const idx=['0','1','2','3'].indexOf(v);
+  if(idx>=0)opts[idx].classList.add('sel');
+  updateProg();
+}
+function updateProg(){
+  const n=ANSWERS.filter(a=>a!==null).length;
+  $('#progress').textContent = n+' / '+ITEMS.length;
+  $('#answeredChip').textContent = '已答 '+n+' / '+ITEMS.length;
+}
+function score(){
+  // 强制校验：所有题必须作答
+  const missing = highlightMissing(ANSWERS);
+  if(missing.length){ toast('还有 '+missing.length+' 题未作答，已完成题目高亮标记'); return; }
+  clearMissing();
+  let total=0;
+  const dims={};
+  Object.keys(DIM_MAP).forEach(k=>dims[k]={sum:0,n:DIM_MAP[k].length});
+  const answerLabels = ANSWERS.map(a=>OPT_LABELS[parseInt(a)]);
+  ITEMS.forEach((txt,i)=>{
+    let v = parseInt(ANSWERS[i]);
+    if(REV.has(i+1)) v = 3 - v; // 反向
+    total += v;
+    for(const k in DIM_MAP){ if(DIM_MAP[k].includes(i+1)){ dims[k].sum += v; } }
+  });
+  const maxTotal = ITEMS.length*3; // 195
+  const pct = Math.round(total/maxTotal*100);
+  // 官方判读需 T 分（60/65/75 为常见分界），无通用原始分界值
+  const dimList = Object.keys(dims).map(k=>({
+    name:k, val: dims[k].sum, max: dims[k].n*3,
+    pct: Math.round(dims[k].sum/(dims[k].n*3)*100),
+    avg: (dims[k].sum/dims[k].n).toFixed(2)
+  }));
+  const refNote = '<b>计分说明：</b>SRS-2 每个条目 0-3 分（0=没有，3=总是），其中 18 道正向表述题（第 3、7、11、12、15、17、21、22、25、26、32、38、40、43、45、48、52、55 题）计分时反向（3-原始分）。官方判读需将原始总分按年龄/性别<b>换算为 T 分</b>（T≥60 提示孤独症相关特质，≥66 中重度，≥76 显著），请查阅 SRS-2 手册常模表；本页不预设原始分界值。';
+  const rec = { total, pct, dimList, avgTotal:(total/ITEMS.length).toFixed(2), answerLabels, refNote };
+  window.__srs2Result = rec;
+  renderResult(rec);
+}
+function renderResult(r){
+  const {total,pct,dimList,avgTotal,refNote}=r;
+  $('#questCard').style.display='none';
+  $('#resultCard').style.display='block';
+  $('#stepQ').classList.remove('cur');
+  $('#stepR').classList.add('cur');
+  const bars = dimList.map(d=>{
+    return `<div class="res-dim"><div class="dm-head"><span class="dm-name">${d.name}</span><span class="dm-val">${d.val}<small> / ${d.max}</small></span></div><div class="dim-bar"><i data-w="${Math.min(100,d.pct)}" style="width:0%"></i></div>
+      <div class="dm-sub">子量表均分 ${d.avg} / 3</div></div>`;
+  }).join('');
+  // 参考建议：基于子量表均分
+  const sugs = [];
+  const highDims = dimList.filter(d=>parseFloat(d.avg) >= 2);
+  const midDims = dimList.filter(d=>parseFloat(d.avg) >= 1.5 && parseFloat(d.avg) < 2);
+  if(highDims.length){
+    sugs.push({t:'以下维度均分较高（≥2/3），提示孤独症特质较明显：<b>'+highDims.map(d=>d.name.split(' ')[0]).join('、')+'</b>。建议结合 CARS 与临床观察完成确诊评估。', warn:true});
+  } else if(midDims.length){
+    sugs.push({t:'以下维度均分处于中等水平：<b>'+midDims.map(d=>d.name.split(' ')[0]).join('、')+'</b>，建议持续观察并安排复测。'});
+  } else {
+    sugs.push({t:'各维度均分总体偏低，<b>孤独症特质不突出</b>，建议按常规随访节奏复查。'});
+  }
+  const rr = dimList.find(d=>d.name.indexOf('RRB')>=0);
+  if(rr && parseFloat(rr.avg) >= 2) sugs.push({t:'「重复刻板行为」均分较高，可留意与眼动「几何图形偏好指数（GPI）」的一致性，若两者都高，提示非社会性刺激偏好较明显。'});
+  sugs.push({t:'<b>结合眼动指标：</b>建议将 SRS-2 总分与 TFF、RJA 正确率、EYE-PDT 做相关分析，用于验证眼动筛查模型的分组效度。'});
+
+  $('#resultBody').innerHTML = `
+  <div class="result">
+    <div class="res-head"><h3>${$('#c_name').value||'未命名'} · SRS-2 结果</h3><span class="chip blue">18 题反向计分 · 原始总分</span></div>
+    <div class="res-total">
+      <div class="res-big"><div class="v" data-anim="${total}">0</div><div class="k">原始总分 / ${ITEMS.length*3}</div></div>
+      <div class="res-big"><div class="v" data-anim="${avgTotal}">0</div><div class="k">条目均分 / 3</div></div>
+      <div class="res-big"><div class="v" style="font-size:24px">${ITEMS.length}</div><div class="k">题目数</div></div>
+    </div>
+    <div class="res-verdict low"><span class="ico">ℹ</span>原始总分越高，孤独症特质越明显（正式判读需换算 T 分，见下方说明）</div>
+    <div class="res-sub"><b>解读说明：</b>${refNote}</div>
+    <div class="res-block"><div class="sec-label">分维度分析</div><div class="res-grid">${bars}</div></div>
+    <div class="res-block">${sugHtml(sugs)}</div>
+    <div class="res-actions">
+      <button class="btn btn-primary btn-lg" onclick="saveRecord()">💾 保存记录</button>
+      <button class="btn btn-accent btn-lg" onclick="exportOne()">⬇ 导出 Excel</button>
+      <button class="btn btn-ghost btn-lg" onclick="resetAll()">重新填写</button>
+    </div>
+  </div>`;
+  requestAnimationFrame(()=>{
+    $('#resultBody').querySelectorAll('[data-anim]').forEach(el=>animateNum(el, el.dataset.anim, 900));
+    animateBars($('#resultBody'));
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+let lastVerdict=null;
+function saveRecord(){
+  const child = getChildInfo();
+  const r = window.__srs2Result;
+  if(!r) return;
+  const dims = r.dimList.map(d=>({name:d.name,val:d.val,max:d.max,pct:d.pct,note:'子量表均分 '+d.avg+' / 3'}));
+  const verdict = '总分 '+r.total+'（条目均分 '+r.avgTotal+'/3，T分需查手册常模）';
+  recordResult('srs2','社交反应量表第二版(SRS-2)',child,r.total,verdict,dims,ANSWERS.slice(),r.answerLabels,r.refNote,ITEMS);
+  toast('已保存到结果记录','ok');
+}
+function exportOne(){
+  saveRecord();
+  setTimeout(()=>exportRecordsXlsx(),300);
+}
+function resetAll(){
+  if(!confirm('清空本次作答并重新填写？')) return;
+  location.reload();
+}
+</script>
+</body>
+</html>

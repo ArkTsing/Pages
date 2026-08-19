@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>儿童饮食行为量表 CEBQ</title>
+<link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">🍎</div>
+    <div>
+      <div class="brand-name">儿童饮食行为量表</div>
+      <div class="brand-sub">CEBQ · Children's Eating Behaviour Questionnaire</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="rec" onclick="goRecords()">🗂 结果记录</button>
+  <button class="home" onclick="goHome()">← 返回评估中心</button>
+</header>
+
+<div class="wrap">
+
+  <div class="stepper" style="margin-bottom:18px">
+    <div class="step done"><span class="n">1</span> 患儿信息</div>
+    <div class="step cur" id="stepQ"><span class="n">2</span> 逐题作答</div>
+    <div class="step" id="stepR"><span class="n">3</span> 查看结果</div>
+  </div>
+
+  <div class="card" id="infoCard">
+    <div class="sec-head"><h2>患儿信息</h2><div class="chip blue">饮食行为评估</div></div>
+    <div class="note"><b>填写说明：</b>请由家长根据孩子<b>过去三个月</b>的饮食状况进行选择：从来没有 / 极少 / 有时 / 多数 / 总是。共 35 题，约需 5-7 分钟。</div>
+    <div class="child-form">
+      <div class="field"><label>患儿姓名</label><input id="c_name" placeholder="如：小明"></div>
+      <div class="field"><label>编号 / 病历号</label><input id="c_id" placeholder="如：P-0024"></div>
+      <div class="field"><label>年龄</label><input id="c_age" placeholder="如：4.2 岁"></div>
+      <div class="field"><label>性别</label><select id="c_gender"><option>男</option><option>女</option></select></div>
+      <div class="field" style="grid-column:1/-1"><label>备注</label><input id="c_note" placeholder="选填"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-primary btn-lg" onclick="startQ()">开始作答 →</button></div>
+  </div>
+
+  <div class="card" id="questCard" style="display:none">
+    <div class="sec-head"><h2>逐题作答</h2><div class="chip" id="progress">0 / 35</div><div class="spacer"></div>
+      <button class="btn btn-ghost btn-sm" onclick="window.scrollTo({top:0,behavior:'smooth'})">回到顶部</button></div>
+    <div class="q-list" id="qList"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:22px;flex-wrap:wrap;gap:12px">
+      <span class="chip" id="answeredChip">已答 0 / 35</span>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="backToInfo()">← 上一步</button>
+        <button class="btn btn-primary btn-lg" onclick="score()">完成并查看结果</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <div class="sec-head"><h2>评估结果</h2><div class="chip blue">CEBQ</div></div>
+    <div id="resultBody"></div>
+  </div>
+
+</div>
+
+<footer>星瞳 · 大创项目演示 · 数据仅存本地浏览器</footer>
+
+<script src="../js/common.js"></script>
+<script>
+/* 35 题：1=从来没有 2=极少 3=有时 4=多数 5=总是（维度划分为参考示意） */
+const ITEMS = [
+"我的孩子很容易就吃饱了。","我的孩子胃口很大。","我的孩子会剩饭。",
+"饭还没吃完我的孩子就饱了。","如果我的孩子在饭前吃了零食，他(她)就不吃饭了。",
+"我的孩子吃饭很慢。","我的孩子吃完饭需要花 30 分钟以上的时间。","我的孩子吃饭非常快。",
+"我的孩子会在一顿饭中越吃越慢。","我的孩子喜欢尝试新食物。","我的孩子喜欢的食谱广泛。",
+"我的孩子对没有吃过的食物很感兴趣。","我的孩子起初拒绝新的食物。",
+"我的孩子即使没有品尝就会判断是他(她)不喜欢的食物。","我的孩子总是对吃饭闷闷不乐。",
+"我的孩子总是要吃的。","如果有机会，我的孩子总是在吃东西。",
+"如果有机会，我的孩子大部分时间都在吃东西。","如果允许的情况下，我的孩子会吃的非常多。",
+"即使我的孩子吃饱了，也会发现他在房间吃他喜欢的食物。","我的孩子喜欢吃饭。",
+"我的孩子喜爱食物。","我的孩子对食物很感兴趣。","我的孩子期待着吃饭。",
+"如果有机会，我的孩子总是会喝。","如果有机会，我的孩子会喝持续一整天。","我的孩子总是要求喝饮料。",
+"当我的孩子心烦意乱时他/她会吃的少一些。","当我的孩子生气时他/她会吃的少一些。",
+"当我的孩子劳累时他/她会吃的少一些。","当我的孩子开心时会吃的多一些。",
+"当我的孩子紧张时会吃的多一些。","当我的孩子生气时会吃的多一些。",
+"当我的孩子焦虑时会吃的多一些。","当我的孩子无事可做时会吃的多一些。"
+];
+/* CEBQ 官方 8 子量表（Wardle et al., 2001），1-5 分，无反向题，官方按子量表均分计 */
+const DIM_MAP = {
+  '食物反应 FR':[2,8,16,17,18,19],
+  '进食愉悦 EF':[21,22,23,24],
+  '情绪性过度进食 EOE':[20,31,32,33,34,35],
+  '饮品欲望 DD':[25,26,27],
+  '饱足反应 SR':[1,4],
+  '进食缓慢 SE':[3,6,7,9],
+  '情绪性少食 EUE':[28,29,30],
+  '挑食 FF':[5,10,11,12,13,14,15]
+};
+const OPT_LABELS = ['1·从来没有','2·极少','3·有时','4·多数','5·总是'];
+const ANSWERS = new Array(ITEMS.length).fill(null);
+
+function startQ(){
+  const c = requireChild(); if(!c) return;
+  $('#infoCard').style.display='none'; $('#questCard').style.display='block';
+  $('#stepQ').classList.add('cur'); renderQ(); window.scrollTo({top:0,behavior:'smooth'});
+}
+function backToInfo(){
+  $('#questCard').style.display='none'; $('#infoCard').style.display='block';
+  $('#stepQ').classList.remove('cur'); window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderQ(){
+  $('#qList').innerHTML = ITEMS.map((txt,i)=>{
+    const opts=[['1','从来没有'],['2','极少'],['3','有时'],['4','多数'],['5','总是']].map(([v,l])=>{
+      const sel = ANSWERS[i]===v?'sel':'';
+      return `<div class="opt ${sel}" onclick="pick(${i},'${v}')"><span class="dot">✓</span><span class="ol">${l}</span></div>`;
+    }).join('');
+    return `<div class="q-item" id="qi${i}">
+      <div class="q-no">${i+1}</div><div class="q-text">${txt}</div><div class="q-opts">${opts}</div></div>`;
+  }).join('');
+  updateProg();
+}
+function pick(i,v){
+  ANSWERS[i]=v;
+  const opts=$('#qi'+i).querySelectorAll('.opt');
+  opts.forEach(o=>o.classList.remove('sel'));
+  opts[['1','2','3','4','5'].indexOf(v)].classList.add('sel');
+  updateProg();
+}
+function updateProg(){
+  const n=ANSWERS.filter(a=>a!==null).length;
+  $('#progress').textContent = n+' / '+ITEMS.length;
+  $('#answeredChip').textContent = '已答 '+n+' / '+ITEMS.length;
+}
+function score(){
+  // 强制校验：所有题必须作答
+  const missing = highlightMissing(ANSWERS);
+  if(missing.length){ toast('还有 '+missing.length+' 题未作答，已完成题目高亮标记'); return; }
+  clearMissing();
+  let total=0; const dims={};
+  Object.keys(DIM_MAP).forEach(k=>dims[k]={sum:0,n:DIM_MAP[k].length});
+  const answerLabels = ANSWERS.map(a=>OPT_LABELS[parseInt(a)-1]);
+  ITEMS.forEach((txt,i)=>{
+    const v = parseInt(ANSWERS[i]);
+    total+=v;
+    for(const k in DIM_MAP){ if(DIM_MAP[k].includes(i+1)) dims[k].sum+=v; }
+  });
+  const pct = Math.round(total/(ITEMS.length*5)*100);
+  // 官方计分：按子量表计算均分（1-5）
+  const dimList = Object.keys(dims).map(k=>({
+    name:k, val:dims[k].sum, max:dims[k].n*5,
+    pct: Math.round(dims[k].sum/(dims[k].n*5)*100),
+    avg: (dims[k].sum/dims[k].n).toFixed(2)
+  }));
+  const refNote = '<b>计分说明：</b>CEBQ 每个条目 1-5 分（1=从来没有，5=总是），按官方 8 个子量表计算<b>子量表均分</b>（1-5，越高该饮食特征越明显）。量表无官方总分界值，正式判读需参考常模与临床。';
+  const rec = { total, pct, dimList, avgTotal:(total/ITEMS.length).toFixed(2), answerLabels, refNote };
+  window.__cebqResult = rec;
+  renderResult(rec);
+}
+function renderResult(r){
+  const {total,pct,dimList,avgTotal,refNote}=r;
+  $('#questCard').style.display='none'; $('#resultCard').style.display='block';
+  $('#stepQ').classList.remove('cur'); $('#stepR').classList.add('cur');
+  const bars = dimList.map(d=>{
+    return `<div class="res-dim"><div class="dm-head"><span class="dm-name">${d.name}</span><span class="dm-val">${d.val}<small> / ${d.max}</small></span></div><div class="dim-bar"><i data-w="${Math.min(100,d.pct)}" style="width:0%"></i></div>
+      <div class="dm-sub">子量表均分 ${d.avg} / 5</div></div>`;
+  }).join('');
+  // 参考建议：基于子量表均分
+  const sugs = [];
+  const find = n=>dimList.find(d=>d.name.indexOf(n)>=0);
+  const fr = find('食物反应'), ff = find('挑食'), eoe = find('情绪性过度进食');
+  const warnT = [];
+  if(fr && parseFloat(fr.avg) >= 4) warnT.push('食物反应');
+  if(ff && parseFloat(ff.avg) >= 4) warnT.push('挑食');
+  if(eoe && parseFloat(eoe.avg) >= 4) warnT.push('情绪性过度进食');
+  if(warnT.length){
+    sugs.push({t:'以下维度均分偏高（≥4/5）：<b>'+warnT.join('、')+'</b>。孤独症儿童常见挑食与食物偏好问题，建议由营养科/康复科指导。', warn:true});
+  } else if(ff && parseFloat(ff.avg) >= 3){
+    sugs.push({t:'「挑食」维度均分中等（≥3/5），可尝试渐进式食物引入、将新食物与喜好食物搭配等策略。'});
+  } else {
+    sugs.push({t:'各饮食维度均分总体平稳，<b>暂无突出饮食行为问题</b>，建议保持多样化饮食并定期复查。'});
+  }
+  if(fr && parseFloat(fr.avg) >= 3.5) sugs.push({t:'「食物反应」偏高提示对食物线索过度敏感，建议规律进餐时间、控制零食可及性。'});
+  sugs.push({t:'<b>与本研究的关系：</b>饮食行为属孤独症常见共病维度，可联合睡眠、执行功能与眼动指标做综合画像分析。'});
+
+  $('#resultBody').innerHTML = `
+  <div class="result">
+    <div class="res-head"><h3>${$('#c_name').value||'未命名'} · CEBQ 结果</h3><span class="chip blue">按官方 8 子量表计分</span></div>
+    <div class="res-total">
+      <div class="res-big"><div class="v" data-anim="${total}">0</div><div class="k">原始总分 / ${ITEMS.length*5}</div></div>
+      <div class="res-big"><div class="v" data-anim="${avgTotal}">0</div><div class="k">条目均分 / 5</div></div>
+      <div class="res-big"><div class="v" style="font-size:24px">${ITEMS.length}</div><div class="k">题目数</div></div>
+    </div>
+    <div class="res-verdict low"><span class="ico">ℹ</span>原始得分越高，该饮食特征越明显（无官方界值，按子量表均分对照常模）</div>
+    <div class="res-sub"><b>解读说明：</b>${refNote}</div>
+    <div class="res-block"><div class="sec-label">分维度分析</div><div class="res-grid">${bars}</div></div>
+    <div class="res-block">${sugHtml(sugs)}</div>
+    <div class="res-actions">
+      <button class="btn btn-primary btn-lg" onclick="saveRecord()">💾 保存记录</button>
+      <button class="btn btn-accent btn-lg" onclick="exportOne()">⬇ 导出 Excel</button>
+      <button class="btn btn-ghost btn-lg" onclick="resetAll()">重新填写</button>
+    </div>
+  </div>`;
+  requestAnimationFrame(()=>{
+    $('#resultBody').querySelectorAll('[data-anim]').forEach(el=>animateNum(el, el.dataset.anim, 900));
+    animateBars($('#resultBody'));
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function saveRecord(){
+  const child = getChildInfo();
+  const r = window.__cebqResult;
+  if(!r) return;
+  const dims = r.dimList.map(d=>({name:d.name,val:d.val,max:d.max,pct:d.pct,note:'子量表均分 '+d.avg+' / 5'}));
+  const verdict = '总分 '+r.total+'（条目均分 '+r.avgTotal+'/5）';
+  recordResult('cebq','儿童饮食行为量表(CEBQ)',child,r.total,verdict,dims,ANSWERS.slice(),r.answerLabels,r.refNote,ITEMS);
+  toast('已保存到结果记录','ok');
+}
+function exportOne(){ saveRecord(); setTimeout(()=>exportRecordsXlsx(),300); }
+function resetAll(){ if(confirm('清空本次作答并重新填写？')) location.reload(); }
+</script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星瞳 · 量表评估中心</title>
+<link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">星</div>
+    <div>
+      <div class="brand-name">星瞳 · 量表评估中心</div>
+      <div class="brand-sub">XINGTONG SCALES · 孤独症辅助评估</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="rec" onclick="location.href='records/index.html'">🗂 结果记录 <span class="chip blue" id="totalBadge">0</span></button>
+  <button class="home" onclick="location.href='../星瞳_孤独症筛查平台_Demo_v5.html'">← 返回主系统</button>
+</header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <h1>孤独症相关量表评估</h1>
+    <p>面向儿康科医生与家长使用的标准化评估工具集，覆盖社交反应、重复刻板行为、执行功能、睡眠与饮食五个维度。填写后自动计算得分并给出参考判读，结果可保存、导出为 Excel 表格。</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">5</div><div class="lbl">评估量表</div></div>
+      <div class="hero-stat"><div class="num" data-count-total>0</div><div class="lbl">已保存记录</div></div>
+      <div class="hero-stat"><div class="num">~10</div><div class="lbl">平均填写时长 · 分钟</div></div>
+    </div>
+  </div>
+
+  <div class="scale-grid" id="scaleGrid"></div>
+
+  <div class="card" style="margin-top:20px">
+    <div class="sec-head"><h2>使用说明</h2><div class="sub">注意事项</div></div>
+    <div class="note"><b>提示：</b>本工具用于辅助评估与数据记录，不能替代专业诊断。量表结果需结合临床观察、眼动指标及医生判断综合解读。所有数据仅保存在当前浏览器本地，不会上传服务器。</div>
+    <div style="font-size:12.5px;color:var(--soft);line-height:1.9">
+      ① 选择上方任一量表进入填写 → ② 填写患儿基本信息 → ③ 逐题作答 → ④ 系统自动计算总分与分维度得分，并给出参考判读 → ⑤ 点击「保存记录」留存，或点击「导出 Excel」将全部记录导出为表格文件。
+    </div>
+  </div>
+
+</div>
+
+<footer>星瞳 · 大创项目演示 · 数据仅存本地浏览器</footer>
+
+<script src="js/common.js"></script>
+<script>
+const META = [
+  { key:'srs2', path:'srs2/index.html', name:'社交反应量表第二版', en:'SRS-2', ic:'🤝', color:'#FDEBEC',
+    desc:'定量评估孤独症特质（社交障碍、沟通缺陷、刻板行为），总分越高孤独症特质越明显，常作为孤独症严重程度的分组依据。',
+    items:'65 题', time:'8-10 分钟', who:'家长/教师',
+    badge:'孤独症核心', badgeCls:'accent' },
+  { key:'rbsr', path:'rbsr/index.html', name:'重复刻板行为量表', en:'RBS-R', ic:'🔁', color:'#FFF4E3',
+    desc:'专项评估刻板与重复行为：自我刺激、自伤、强迫、仪式化、固定行为、局限兴趣等，可与眼动「几何偏好指数」关联分析。',
+    items:'43 题', time:'6-8 分钟', who:'家长/临床',
+    badge:'重复行为', badgeCls:'accent' },
+  { key:'chexi', path:'chexi/index.html', name:'儿童执行功能量表', en:'CHEXI', ic:'🧠', color:'#E8F4FA',
+    desc:'评估工作记忆、抑制控制、认知灵活性等执行功能，家长与教师双版本。孤独症儿童常伴执行功能缺陷。',
+    items:'24 题', time:'5-6 分钟', who:'家长/教师',
+    badge:'执行功能', badgeCls:'blue' },
+  { key:'cshq', path:'cshq/index.html', name:'儿童睡眠习惯问卷', en:'CSHQ', ic:'🌙', color:'#EEF1FB',
+    desc:'测查儿童睡眠习惯与睡眠问题：入睡、夜醒、作息规律、白天嗜睡等。孤独症儿童睡眠问题发生率高，为常见共病维度。',
+    items:'33+ 题', time:'6-8 分钟', who:'家长',
+    badge:'睡眠共病', badgeCls:'blue' },
+  { key:'cebq', path:'cebq/index.html', name:'儿童饮食行为量表', en:'CEBQ', ic:'🍎', color:'#E7F6F0',
+    desc:'测查饮食行为：食物反应、挑食、进食速度、情绪性进食等。孤独症儿童挑食与饮食问题突出，为常见共病维度。',
+    items:'35 题', time:'5-7 分钟', who:'家长',
+    badge:'饮食共病', badgeCls:'blue' }
+];
+function renderGrid(){
+  $('#scaleGrid').innerHTML = META.map((m,i)=>{
+    const count = scaleCount(m.key);
+    return `<div class="scale-card" onclick="location.href='${m.path}'">
+      <span class="sc-badge ${m.badgeCls}">${m.badge}</span>
+      <div class="sc-ic" style="background:${m.color}">${m.ic}</div>
+      <div class="sc-name">${m.name}</div>
+      <div class="sc-en">${m.en}</div>
+      <div class="sc-desc">${m.desc}</div>
+      <div class="sc-meta">
+        <span>${m.items}</span><span>约 ${m.time}</span><span>${m.who}</span>
+      </div>
+      <div class="sc-foot">
+        <span class="sc-go">开始评估 →</span>
+        <span class="sc-count">已填 <b>${count}</b> 份</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+renderGrid();
+document.addEventListener('DOMContentLoaded', ()=>{ updateSummary(); const b=$('#totalBadge'); if(b) b.textContent = loadRecords().length; });
+</script>
+</body>
+</html>

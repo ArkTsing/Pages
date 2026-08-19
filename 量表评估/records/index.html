@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星瞳 · 结果记录</title>
+<link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">星</div>
+    <div>
+      <div class="brand-name">量表评估 · 结果记录</div>
+      <div class="brand-sub">已保存的评估结果</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="rec" onclick="exportRecordsXlsx()">⬇ 导出 Excel</button>
+  <button class="home" onclick="location.href='../index.html'">← 返回评估中心</button>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="sec-head"><h2>评估记录</h2>
+      <div class="sub" id="recCount">共 0 条</div>
+      <div class="spacer"></div>
+      <button class="btn btn-primary btn-sm" onclick="exportRecordsXlsx()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg> 导出全部记录</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>患儿</th><th>量表</th><th>总分</th><th>判定</th><th>时间</th><th>操作</th></tr></thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-head"><h2>各量表已填份数</h2></div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <div class="chip blue" data-count-chexi>CHEXI 0</div>
+      <div class="chip blue" data-count-cshq>CSHQ 0</div>
+      <div class="chip blue" data-count-cebq>CEBQ 0</div>
+      <div class="chip accent" data-count-srs2>SRS-2 0</div>
+      <div class="chip accent" data-count-rbsr>RBS-R 0</div>
+    </div>
+  </div>
+
+</div>
+
+<footer>星瞳 · 大创项目演示 · 数据仅存本地浏览器</footer>
+
+<script src="../js/common.js"></script>
+<script>
+function refresh(){
+  renderRecordsTable('recordsBody');
+  updateSummary();
+  const recs = loadRecords();
+  $('#recCount').textContent = '共 ' + recs.length + ' 条';
+}
+refresh();
+</script>
+</body>
+</html>

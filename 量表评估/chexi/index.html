@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>儿童执行功能量表 CHEXI</title>
+<link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">🧠</div>
+    <div>
+      <div class="brand-name">儿童执行功能量表</div>
+      <div class="brand-sub">CHEXI · Childhood Executive Functioning Inventory</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <button class="rec" onclick="goRecords()">🗂 结果记录</button>
+  <button class="home" onclick="goHome()">← 返回评估中心</button>
+</header>
+
+<div class="wrap">
+
+  <div class="stepper" style="margin-bottom:18px">
+    <div class="step done"><span class="n">1</span> 患儿信息</div>
+    <div class="step cur" id="stepQ"><span class="n">2</span> 逐题作答</div>
+    <div class="step" id="stepR"><span class="n">3</span> 查看结果</div>
+  </div>
+
+  <div class="card" id="infoCard">
+    <div class="sec-head"><h2>患儿信息</h2><div class="chip blue">执行功能评估 · 家长/教师版</div></div>
+    <div class="note"><b>填写说明：</b>请根据儿童日常表现，对每个陈述选择最符合的程度：完全不正确 / 不正确 / 部分正确 / 正确 / 完全正确。共 24 题，约需 5-6 分钟。</div>
+    <div class="child-form">
+      <div class="field"><label>患儿姓名</label><input id="c_name" placeholder="如：小明"></div>
+      <div class="field"><label>编号 / 病历号</label><input id="c_id" placeholder="如：P-0024"></div>
+      <div class="field"><label>年龄</label><input id="c_age" placeholder="如：4.2 岁"></div>
+      <div class="field"><label>性别</label><select id="c_gender"><option>男</option><option>女</option></select></div>
+      <div class="field"><label>填表人</label><select id="c_rater"><option>家长</option><option>教师</option></select></div>
+      <div class="field" style="grid-column:1/-1"><label>备注</label><input id="c_note" placeholder="选填"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px"><button class="btn btn-primary btn-lg" onclick="startQ()">开始作答 →</button></div>
+  </div>
+
+  <div class="card" id="questCard" style="display:none">
+    <div class="sec-head"><h2>逐题作答</h2><div class="chip" id="progress">0 / 24</div><div class="spacer"></div>
+      <button class="btn btn-ghost btn-sm" onclick="window.scrollTo({top:0,behavior:'smooth'})">回到顶部</button></div>
+    <div class="q-list" id="qList"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:22px;flex-wrap:wrap;gap:12px">
+      <span class="chip" id="answeredChip">已答 0 / 24</span>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="backToInfo()">← 上一步</button>
+        <button class="btn btn-primary btn-lg" onclick="score()">完成并查看结果</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none">
+    <div class="sec-head"><h2>评估结果</h2><div class="chip blue">CHEXI</div></div>
+    <div id="resultBody"></div>
+  </div>
+
+</div>
+
+<footer>星瞳 · 大创项目演示 · 数据仅存本地浏览器</footer>
+
+<script src="../js/common.js"></script>
+<script>
+/* 24 题：1=完全不正确 2=不正确 3=部分正确 4=正确 5=完全正确（全部正向困难表述，无反向题） */
+const ITEMS = [
+"难以记住一些冗长的指示。","他(她)似乎很少能自我激励去做一些自己不喜欢做的事。",
+"难以记得自己在活动中途做过甚么。","难以对一些欠缺吸引力的任务坚持到底，除非有人承诺会给与奖励。",
+"有倾向在做事之前没先想一想后果。","当有数件事情要他(她)去做，他(她)只会记得第一件或最后一件事情。",
+"当他(她)被问题困扰着时，难以想出另一个方法来解答。","当有些事必须要完成的时候，他(她)常常会被其他更吸引的事分了心。",
+"很容易忘记别人要他/她拿甚么东西回来。","当一些特别事情即将发生时（例如：出外参观、参加派对）会异常兴奋。",
+"显然难以去做一些他(她)认为沉闷的事。","难以计划好一项活动（例如：记得带齐实地考察的装备或上学所需要的东西）。",
+"难以抑制他(她)的活跃，尽管早已作出吩咐亦如是。","难以进行一些需要多个步骤的活动（例如：年纪较幼的小孩在没有提示下穿好衣服鞋袜；年纪较长的小孩独自做完所有功课）。",
+"他(她)一定要觉得任务有吸引力才能全神贯注。","难以在不适宜笑的场合忍笑。",
+"难以把一些已发生的事情述说得令其他人容易明白。","即使被喝令停止亦难以在活动中立即停下来。例如：他(她)在被喝停后总要多跳几下或是多玩计算机一会儿。",
+"难以理解用言语表达的指示，除非同时向他(她)示范怎样做。","难以应付一些包含多个步骤的任务或活动。",
+"难以预先想好未来的事或从经验中学习。","在一班小朋友当中会表现得比其他人更疯狂（例如：生日派对上或群体活动中）。",
+"难以做一些需要动脑筋的事，例如：倒数。","难以在做着其他事情时仍不忘之前要牢记的东西。"
+];
+/* CHEXI 官方结构（Thorell & Nyberg, 2008）：2 因子
+   工作记忆 Working Memory 9 题；抑制控制 Inhibition 15 题；无官方总分界值 */
+const DIM_MAP = {
+  '工作记忆 Working Memory':[1,3,6,9,12,14,19,20,24],
+  '抑制控制 Inhibition':[2,4,5,7,8,10,11,13,15,16,17,18,21,22,23]
+};
+const OPT_LABELS = ['1·完全不正确','2·不正确','3·部分正确','4·正确','5·完全正确'];
+const ANSWERS = new Array(ITEMS.length).fill(null);
+
+function startQ(){
+  const c = requireChild(); if(!c) return;
+  $('#infoCard').style.display='none'; $('#questCard').style.display='block';
+  $('#stepQ').classList.add('cur'); renderQ(); window.scrollTo({top:0,behavior:'smooth'});
+}
+function backToInfo(){
+  $('#questCard').style.display='none'; $('#infoCard').style.display='block';
+  $('#stepQ').classList.remove('cur'); window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderQ(){
+  $('#qList').innerHTML = ITEMS.map((txt,i)=>{
+    const opts=[['1','完全不正确'],['2','不正确'],['3','部分正确'],['4','正确'],['5','完全正确']].map(([v,l])=>{
+      const sel = ANSWERS[i]===v?'sel':'';
+      return `<div class="opt ${sel}" onclick="pick(${i},'${v}')"><span class="dot">✓</span><span class="ol">${l}</span></div>`;
+    }).join('');
+    return `<div class="q-item" id="qi${i}">
+      <div class="q-no">${i+1}</div><div class="q-text">${txt}</div><div class="q-opts">${opts}</div></div>`;
+  }).join('');
+  updateProg();
+}
+function pick(i,v){
+  ANSWERS[i]=v;
+  const opts=$('#qi'+i).querySelectorAll('.opt');
+  opts.forEach(o=>o.classList.remove('sel'));
+  opts[['1','2','3','4','5'].indexOf(v)].classList.add('sel');
+  updateProg();
+}
+function updateProg(){
+  const n=ANSWERS.filter(a=>a!==null).length;
+  $('#progress').textContent = n+' / '+ITEMS.length;
+  $('#answeredChip').textContent = '已答 '+n+' / '+ITEMS.length;
+}
+function score(){
+  // 强制校验：所有题必须作答
+  const missing = highlightMissing(ANSWERS);
+  if(missing.length){ toast('还有 '+missing.length+' 题未作答，已完成题目高亮标记'); return; }
+  clearMissing();
+  let total=0; const dims={};
+  Object.keys(DIM_MAP).forEach(k=>dims[k]={sum:0,n:DIM_MAP[k].length});
+  const answerLabels = ANSWERS.map(a=>OPT_LABELS[parseInt(a)-1]);
+  ITEMS.forEach((txt,i)=>{
+    const v = parseInt(ANSWERS[i]);
+    total+=v;
+    for(const k in DIM_MAP){ if(DIM_MAP[k].includes(i+1)) dims[k].sum+=v; }
+  });
+  const pct = Math.round(total/(ITEMS.length*5)*100);
+  // 维度均分（1-5，越高困难越明显）
+  const dimList = Object.keys(dims).map(k=>({
+    name:k, val:dims[k].sum, max:dims[k].n*5,
+    pct: Math.round(dims[k].sum/(dims[k].n*5)*100),
+    avg: (dims[k].sum/dims[k].n).toFixed(2)
+  }));
+  const avgTotal = (total/ITEMS.length).toFixed(2);
+  const refNote = '<b>计分说明：</b>CHEXI 每个条目 1-5 分（1=完全不正确，5=完全正确），按官方 2 因子结构计分：工作记忆 9 题、抑制控制 15 题。量表无官方总分界值，正式判读需参考年龄常模，家长版与教师版可分开计分、对照分析。';
+  const rec = { total, pct, verdict:null, cls:null, dimList, avgTotal, answerLabels, refNote };
+  window.__chexiResult = rec;
+  renderResult(rec);
+}
+function renderResult(r){
+  const {total,pct,dimList,avgTotal,refNote}=r;
+  $('#questCard').style.display='none'; $('#resultCard').style.display='block';
+  $('#stepQ').classList.remove('cur'); $('#stepR').classList.add('cur');
+  const bars = dimList.map(d=>{
+    return `<div class="res-dim"><div class="dm-head"><span class="dm-name">${d.name}</span><span class="dm-val">${d.val}<small> / ${d.max}</small></span></div><div class="dim-bar"><i data-w="${Math.min(100,d.pct)}" style="width:0%"></i></div>
+      <div class="dm-sub">维度均分 ${d.avg} / 5</div></div>`;
+  }).join('');
+  // 参考建议：基于两因子均分
+  const sugs = [];
+  const wm = dimList.find(d=>d.name.indexOf('工作记忆')>=0);
+  const inh = dimList.find(d=>d.name.indexOf('抑制控制')>=0);
+  if(wm && parseFloat(wm.avg) >= 4) sugs.push({t:'「工作记忆」维度均分偏高（≥4/5），提示记住多步指令有困难。建议：<b>指令拆分、一次一步</b>；重要事项用视觉提示卡辅助记忆。', warn:true});
+  else if(wm && parseFloat(wm.avg) >= 3) sugs.push({t:'「工作记忆」均分中等，建议通过小游戏（如"记物品/复述指令"）逐步训练，完成任务时提供清单。'});
+  if(inh && parseFloat(inh.avg) >= 4) sugs.push({t:'「抑制控制」维度均分偏高（≥4/5），提示冲动/难以克制较明显。建议：<b>提前预告规则、延迟满足练习、安静角落冷静</b>。', warn:true});
+  else if(inh && parseFloat(inh.avg) >= 3) sugs.push({t:'「抑制控制」均分中等，可通过"红灯停绿灯行""木头人"等游戏训练自我控制。'});
+  if(wm && inh && parseFloat(wm.avg)>=3.5 && parseFloat(inh.avg)>=3.5){
+    sugs.push({t:'两因子均分都偏高，执行功能困难较广泛，建议与临床心理/康复科协作，制定结构化的执行功能训练方案。'});
+  } else {
+    sugs.push({t:'家长版与教师版可对照分析：若教师版明显高于家长版，提示困难更多体现在结构化课堂环境，干预宜家校协同。'});
+  }
+  sugs.push({t:'<b>与本研究的关系：</b>执行功能（工作记忆/抑制控制）与共同注意的注意力维持相关，可作为眼动指标的认知层面伴随评估。'});
+
+  $('#resultBody').innerHTML = `
+  <div class="result">
+    <div class="res-head"><h3>${$('#c_name').value||'未命名'} · CHEXI 结果 <span class="chip blue">${$('#c_rater').value}</span></h3></div>
+    <div class="res-total">
+      <div class="res-big"><div class="v" data-anim="${total}">0</div><div class="k">原始总分 / ${ITEMS.length*5}</div></div>
+      <div class="res-big"><div class="v" data-anim="${avgTotal}">0</div><div class="k">条目均分 / 5</div></div>
+      <div class="res-big"><div class="v" style="font-size:24px">${ITEMS.length}</div><div class="k">题目数</div></div>
+    </div>
+    <div class="res-verdict low"><span class="ico">ℹ</span>原始得分越高，执行功能困难越明显（无官方界值，需参考常模）</div>
+    <div class="res-sub"><b>解读说明：</b>${refNote}</div>
+    <div class="res-block"><div class="sec-label">分维度分析</div><div class="res-grid">${bars}</div></div>
+    <div class="res-block">${sugHtml(sugs)}</div>
+    <div class="res-actions">
+      <button class="btn btn-primary btn-lg" onclick="saveRecord()">💾 保存记录</button>
+      <button class="btn btn-accent btn-lg" onclick="exportOne()">⬇ 导出 Excel</button>
+      <button class="btn btn-ghost btn-lg" onclick="resetAll()">重新填写</button>
+    </div>
+  </div>`;
+  requestAnimationFrame(()=>{
+    $('#resultBody').querySelectorAll('[data-anim]').forEach(el=>animateNum(el, el.dataset.anim, 900));
+    animateBars($('#resultBody'));
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function saveRecord(){
+  const child = getChildInfo();
+  child.rater = $('#c_rater').value;
+  const r = window.__chexiResult;
+  if(!r) return;
+  const dims = r.dimList.map(d=>({name:d.name,val:d.val,max:d.max,pct:d.pct,note:'维度均分 '+d.avg+' / 5'}));
+  const verdict = '总分 '+r.total+'（条目均分 '+r.avgTotal+'/5）';
+  recordResult('chexi','儿童执行功能量表(CHEXI)',child,r.total,verdict,dims,ANSWERS.slice(),r.answerLabels,r.refNote,ITEMS);
+  toast('已保存到结果记录','ok');
+}
+function exportOne(){ saveRecord(); setTimeout(()=>exportRecordsXlsx(),300); }
+function resetAll(){ if(confirm('清空本次作答并重新填写？')) location.reload(); }
+</script>
+</body>
+</html>
